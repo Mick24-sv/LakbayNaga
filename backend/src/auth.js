@@ -95,6 +95,19 @@ export function auth(store) {
 
 
   return {
+    required(req, res, next) {
+      if (!req.user) return res.status(401).json({ error: 'Please log in to continue.' });
+      next();
+    },
+
+    admin(req, res, next) {
+      if (!req.user) return res.status(401).json({ error: 'Please log in to continue.' });
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ error: 'Administrator access is required.' });
+      }
+      next();
+    },
+
     async load(req) {
       const token = tokenFrom(req);
       if (!token) return;

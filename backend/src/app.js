@@ -63,6 +63,16 @@ export function createApp({ store = makeStore(), attractionData = attractions } 
   });
 
 
+  // Public browsing is separate from authenticated and administrator access.
+  app.get('/api/profile', access.required, (req, res) => {
+    res.json({ user: publicUser(req.user) });
+  });
+
+  app.get('/api/admin/attractions', access.required, access.admin, (_req, res) => {
+    // Administrators can also inspect drafts and archived attractions.
+    res.json(attractionData);
+  });
+
   app.post('/api/auth/register', handle(async (req, res) => {
     let data;
 
