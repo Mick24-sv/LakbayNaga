@@ -1,0 +1,14 @@
+{
+  "name": "lakbaynaga",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": ["frontend", "backend"],
+  "scripts": {
+    "dev": "concurrently -k -n frontend,backend \"npm run dev --workspace frontend\" \"npm run dev --workspace backend\"",
+    "build": "npm run build --workspace frontend",
+    "start": "npm start --workspace backend",
+    "test": "npm test --workspace backend"
+  },
+  "devDependencies": { "concurrently": "^9.0.0" },
+  "engines": { "node": ">=22" }
+}
