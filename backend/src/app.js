@@ -15,7 +15,7 @@ const handle = fn => (req, res, next) =>
   Promise.resolve(fn(req, res)).catch(next);
 
 
-export function createApp({ store = makeStore() } = {}) {
+export function createApp({ store = makeStore(), attractionData = attractions } = {}) {
   const app = express();
   const access = auth(store);
 
@@ -37,8 +37,29 @@ export function createApp({ store = makeStore() } = {}) {
   });
 
 
-  app.get('/api/attractions', (_req, res) => {
-    res.json(attractions);
+  app.get('/api/attractions', (req, res) => {
+    const { q = '', category = '' } = req.query;
+
+    if (typeof q !== 'string' || typeof category !== 'string') {
+      return res.status(400).json({
+        error: 'Search and category must be single text values.'
+      });
+    }
+
+    const search = q.trim().toLowerCase();
+    const selectedCategory = category.trim().toLowerCase();
+    const results = attractionData.filter(place => {
+      if (place.published !== true || place.archived) return false;
+      if (selectedCategory &&
+          String(place.category || '').toLowerCase() !== selectedCategory) {
+        return false;
+      }
+
+      return [place.name, place.area, place.description]
+        .some(value => String(value || '').toLowerCase().includes(search));
+    });
+
+    res.json(results);
   });
 
 
