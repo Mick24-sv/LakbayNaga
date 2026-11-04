@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createApp } from '../src/app.js';
+import { createApp } from '../../src/app.js';
 
 const attractionData = [
   { id: 'plaza', name: 'Test Plaza', category: 'City spaces', area: 'Downtown', description: 'A monument garden.', published: true, archived: false },
