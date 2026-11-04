@@ -11,25 +11,44 @@ dotenv.config({
 
 
 try {
-  if (process.env.MONGODB_URI) {
+  const persistent = Boolean(process.env.MONGODB_URI);
+
+
+  if (persistent) {
     await connectDatabase();
     console.log('MongoDB connected successfully.');
   } else {
     console.log(
-      'MONGODB_URI is not configured. Starting with temporary storage.'
+      'MongoDB is not configured. Attractions use empty temporary storage.'
     );
   }
 
 
-  // Load the application after environment configuration.
-  const { default: app } = await import('./app.js');
+  const { makeAttractionRepository } = await import(
+    './repositories/attractionRepository.js'
+  );
 
 
+  const attractionRepository = makeAttractionRepository({
+    persistent
+  });
+
+
+  await attractionRepository.initialize();
+
+
+  const { createApp } = await import('./app.js');
+
+
+  const app = createApp({ attractionRepository });
   const port = Number(process.env.PORT || 3001);
 
 
   const server = app.listen(port, () => {
     console.log('LakbayNaga API listening on port ' + port);
+    console.log(
+      'Attraction storage: ' + (persistent ? 'MongoDB' : 'memory')
+    );
   });
 
 
@@ -41,7 +60,7 @@ try {
 } catch (error) {
   console.error('Backend startup failed. Error type: ' + error.name);
   console.error(
-    'Check the database configuration before restarting.'
+    'Check database credentials, network access, and collection indexes.'
   );
 
 
