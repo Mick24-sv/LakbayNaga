@@ -340,3 +340,19 @@
     align-items: flex-start;
   }
 }
+
+.attraction-card > .attraction-details-link {
+  margin-top: auto;
+}
+
+.attraction-card > .attraction-details-link + .attractions-secondary {
+  margin-top: 10px;
+}
+
+.attraction-card > .attraction-details-link {
+  margin-top: auto;
+}
+
+.attraction-card > .attraction-details-link + .attractions-secondary {
+  margin-top: 10px;
+}
