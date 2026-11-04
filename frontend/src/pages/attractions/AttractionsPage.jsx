@@ -189,7 +189,14 @@ export default function AttractionsPage() {
                   </div>
                 </dl>
 
-
+                <a
+                  className="attractions-secondary attraction-details-link"
+                  href={'#place/' + encodeURIComponent(place.id)}
+                >
+                  View place
+                  <span aria-hidden="true">&#8594;</span>
+                </a>
+                
                 <a
                   className="attractions-secondary"
                   href={

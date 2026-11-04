@@ -2,12 +2,18 @@ import { useEffect, useRef, useState } from 'react';
 import HomePage from './pages/home/HomePage.jsx';
 import AttractionsPage from './pages/attractions/AttractionsPage.jsx';
 import AccountPage from './pages/authentication/AccountPage.jsx';
+import AttractionDetailsPage from './pages/attraction-details/AttractionDetailsPage.jsx';
 import { accountRequest } from './pages/authentication/accountLogic.js';
 import './App.css';
+
 
 function currentPage() {
   const page = window.location.hash.slice(1);
   const allowedPages = ['home', 'explore', 'login', 'register'];
+
+
+  if (page.startsWith('place/')) return page;
+
 
   return allowedPages.includes(page) ? page : 'home';
 }
@@ -87,8 +93,17 @@ export default function App() {
 
   let content;
 
-  if (page === 'explore') {
-    content = <AttractionsPage />;
+  if (page.startsWith('place/')) {
+  content = (
+    <AttractionDetailsPage
+      key={page}
+      attractionId={page.slice('place/'.length)}
+    />
+  );
+  } else if (page === 'explore') {
+    content = (
+      <AttractionsPage key={page} />
+    );
   } else if (page === 'login' || page === 'register') {
     content = (
       <AccountPage
@@ -123,7 +138,11 @@ export default function App() {
 
             <a
               href="#explore"
-              aria-current={page === 'explore' ? 'page' : undefined}
+              aria-current={
+                page === 'explore' || page.startsWith('place/')
+                ? 'page'
+                : undefined
+              }
             >
               Attractions
             </a>
