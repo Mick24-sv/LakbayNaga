@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { createApp } from '../src/app.js';
-import { makeStore } from '../src/store.js';
-import { hashPassword } from '../src/auth.js';
+import { createApp } from '../../src/app.js';
+import { makeStore } from '../../src/repositories/memoryStore.js';
+import { hashPassword } from '../../src/services/authService.js';
 
 const attractionData = [
   { id: 'public', published: true, archived: false },

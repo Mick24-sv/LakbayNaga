@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createApp } from '../src/app.js';
-import { makeStore } from '../src/store.js';
-import { verifyPassword } from '../src/auth.js';
+import { createApp } from '../../src/app.js';
+import { makeStore } from '../../src/repositories/memoryStore.js';
+import { verifyPassword } from '../../src/services/authService.js';
 
 
 async function withServer(check) {

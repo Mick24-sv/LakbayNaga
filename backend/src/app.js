@@ -1,169 +1,25 @@
 import express from 'express';
-import { attractions } from './attractions.js';
-import { makeStore } from './store.js';
-import {
-  auth,
-  hashPassword,
-  verifyPassword,
-  publicUser,
-  validateAccount
-} from './auth.js';
-
-
-// Forward asynchronous errors to Express 4's error handler.
-const handle = fn => (req, res, next) =>
-  Promise.resolve(fn(req, res)).catch(next);
-
+import { attractions } from './data/attractions.js';
+import { makeStore } from './repositories/memoryStore.js';
+import { auth } from './middleware/authMiddleware.js';
+import { notFound, errorHandler } from './middleware/errorHandler.js';
+import { createAuthRoutes } from './routes/authRoutes.js';
+import { createAttractionRoutes } from './routes/attractionRoutes.js';
 
 export function createApp({ store = makeStore(), attractionData = attractions } = {}) {
   const app = express();
   const access = auth(store);
-
-
   app.disable('x-powered-by');
   app.use(express.json({ limit: '1mb' }));
-
-
- 
-
-  // Load the user associated with the session cookie.
   app.use((req, res, next) => {
     access.load(req).then(() => next()).catch(next);
   });
-
-
-  app.get('/api/health', (_req, res) => {
-    res.json({ status: 'ok' });
-  });
-
-
-  app.get('/api/attractions', (req, res) => {
-    const { q = '', category = '' } = req.query;
-
-    if (typeof q !== 'string' || typeof category !== 'string') {
-      return res.status(400).json({
-        error: 'Search and category must be single text values.'
-      });
-    }
-
-    const search = q.trim().toLowerCase();
-    const selectedCategory = category.trim().toLowerCase();
-    const results = attractionData.filter(place => {
-      if (place.published !== true || place.archived) return false;
-      if (selectedCategory &&
-          String(place.category || '').toLowerCase() !== selectedCategory) {
-        return false;
-      }
-
-      return [place.name, place.area, place.description]
-        .some(value => String(value || '').toLowerCase().includes(search));
-    });
-
-    res.json(results);
-  });
-
-
-  // Public browsing is separate from authenticated and administrator access.
-  app.get('/api/profile', access.required, (req, res) => {
-    res.json({ user: publicUser(req.user) });
-  });
-
-  app.get('/api/admin/attractions', access.required, access.admin, (_req, res) => {
-    // Administrators can also inspect drafts and archived attractions.
-    res.json(attractionData);
-  });
-
-  app.post('/api/auth/register', handle(async (req, res) => {
-    let data;
-
-
-    try {
-      data = validateAccount(req.body || {});
-    } catch (error) {
-      return res.status(400).json({ error: error.message });
-    }
-
-
-    const user = await store.addUser({
-      firstName: data.firstName,
-      lastName: data.lastName,
-      email: data.email,
-      passwordHash: await hashPassword(data.password),
-      role: 'user'
-    });
-
-
-    await access.login(req, res, user);
-  }));
-
-
-  app.post('/api/auth/login', handle(async (req, res) => {
-    const body = req.body || {};
-    const email = typeof body.email === 'string'
-      ? body.email.trim().toLowerCase()
-      : '';
-
-
-    if (typeof body.password !== 'string' ||
-        body.password.length > 128) {
-      return res.status(401).json({
-        error: 'Invalid email or password.'
-      });
-    }
-
-
-    const user = await store.userByEmail(email);
-    const storedHash = user?.passwordHash ||
-      await hashPassword('unused-dummy-password');
-
-
-    const valid = await verifyPassword(body.password, storedHash);
-
-
-    if (!user || !valid) {
-      return res.status(401).json({
-        error: 'Invalid email or password.'
-      });
-    }
-
-
-    await access.login(req, res, user);
-  }));
-
-
-  app.get('/api/auth/me', (req, res) => {
-    res.json({ user: req.user ? publicUser(req.user) : null });
-  });
-
-
-  app.post('/api/auth/logout', handle(async (req, res) => {
-    await access.logout(req, res);
-  }));
-
-
-  app.use('/api', (_req, res) => {
-    res.status(404).json({ error: 'Route not found' });
-  });
-
-
-  app.use((error, req, res, next) => {
-    if (error.type === 'entity.parse.failed') {
-      return res.status(400).json({ error: 'Invalid JSON request.' });
-    }
-
-
-    if (error.status === 409) {
-      return res.status(409).json({ error: error.message });
-    }
-
-
-    console.error(error.message);
-    res.status(500).json({ error: 'The server could not complete the request.' });
-  });
-
-
+  app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
+  app.use('/api', createAuthRoutes(store, access));
+  app.use('/api', createAttractionRoutes(attractionData, access));
+  app.use('/api', notFound);
+  app.use(errorHandler);
   return app;
 }
-
 
 export default createApp();
