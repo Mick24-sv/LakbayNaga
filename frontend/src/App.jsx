@@ -100,7 +100,11 @@ export default function App() {
       attractionId={page.slice('place/'.length)}
     />
   );
-  } else if (page === 'explore') { else if (page === 'login' || page === 'register') {
+  } else if (page === 'explore') {
+    content = (
+      <AttractionsPage key={page} />
+    );
+  } else if (page === 'login' || page === 'register') {
     content = (
       <AccountPage
         key={page}
