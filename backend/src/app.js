@@ -8,6 +8,7 @@ import {
 } from './middleware/errorHandler.js';
 import { createAuthRoutes } from './routes/authRoutes.js';
 import { createAttractionRoutes } from './routes/attractionRoutes.js';
+import { createItineraryRoutes } from './routes/itineraryRoutes.js';
 
 
 export function createApp({
@@ -43,6 +44,8 @@ export function createApp({
     createAttractionRoutes(attractionRepository, access)
   );
 
+
+  app.use('/api', createItineraryRoutes(attractionRepository, access));
 
   app.use('/api', notFound);
   app.use(errorHandler);
