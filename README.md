@@ -165,3 +165,66 @@ placeholders are separate implementation work.
 
 The former inline routes in `app.js` now use `routes/`, `controllers/`, and
 `services/`. Backend tests and frontend imports have been updated accordingly.
+
+## LNK-BE-07 — Itinerary generation API
+
+`POST /api/itineraries/generate` requires the current login session cookie.
+Guests receive HTTP 401. Invalid settings receive HTTP 400 with a JSON error.
+
+Example JSON request:
+
+```json
+{
+  "budget": 1500,
+  "hours": 6,
+  "people": 2,
+  "days": 1,
+  "startDate": "2026-11-22",
+  "pace": "balanced",
+  "transport": "public",
+  "preferences": ["Faith & heritage", "City spaces"],
+  "foodPerPersonDay": 100,
+  "lodgingPerNight": 0
+}
+```
+
+Budget is for the entire group and whole trip; hours are per day. Supported paces:
+relaxed, balanced, active. Supported transport: walk, public, private. Empty interests
+allow all categories. Food is per traveler per day; lodging is per group per night
+(days minus one). At most 7 days, 20 travelers, and 12 hours per day are accepted.
+
+Response fields match the completed system's planner:
+- `settings`: normalized inputs.
+- `days`: day number, optional date, stops, minutes, and approximate distance.
+- `stops`: flattened list across days, with no repeated attraction IDs.
+- `totals`: admissions, transportAllowance, food, lodging, total, remaining,
+  minutes, and distanceKm.
+- `notice`: qualifications about planning estimates.
+
+A stop's `startMinutes` is elapsed time from the start of that day. The finished
+frontend displays these offsets relative to 09:00; they are not verified opening hours.
+Pace adjusts visit durations. The planner selects affordable stops per day, then
+orders them by nearby coordinates. It is a planning heuristic, not a guaranteed
+optimal road route. Missing coordinates contribute zero to distance estimates.
+Transport allowances are PHP 0/50/100 per traveler per stop for walk/public/private;
+transfer estimates are 45/30/20 minutes between stops respectively. These are demo
+planning assumptions, not live fares or travel-time estimates.
+
+Only published, non-archived attractions with valid numeric fees and durations
+are eligible. Records come through the existing repository (MongoDB when configured).
+No attraction data is embedded in the service. Empty or unaffordable catalogs return
+an empty plan; food/lodging exceeding the budget produce HTTP 400. Client-supplied
+stops or totals are ignored. Generation does not save an itinerary.
+
+Implementation:
+- `backend/src/services/plannerService.js`: validation and planning algorithm.
+- `backend/src/controllers/itineraryController.js`: repository access and responses.
+- `backend/src/routes/itineraryRoutes.js`: authenticated endpoint registration.
+- `backend/test/integration/planner.test.js`: budget/time, dates, preferences,
+  visibility, validation, and session checks using temporary test fixtures.
+
+Run the ticket tests from the project root:
+
+```powershell
+node --test backend/test/integration/planner.test.js
+```
