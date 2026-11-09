@@ -1,21 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import RouteMap from '../../components/maps/RouteMap.jsx';
+import {
+  adminCategories,
+  adminRequest,
+  validateAttractionForm,
+} from './adminLogic.js';
 import './AdminPage.css';
 
 /* ── helpers ─────────────────────────────────────────────── */
 async function api(path, body, method) {
-  const hasBody = body !== undefined && method !== undefined;
-  const res = await fetch('/api' + path, {
-    method: hasBody ? method : body !== undefined ? 'POST' : 'GET',
-    credentials: 'same-origin',
-    headers: hasBody || body !== undefined
-      ? { 'Content-Type': 'application/json' } : {},
-    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+  return adminRequest(path, {
+    method: method || (body === undefined ? 'GET' : 'POST'),
+    ...(body === undefined ? {} : { body }),
   });
-  if (res.status === 204) return null;
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'The request could not be completed.');
-  return data;
 }
 
 function money(n) {
@@ -26,13 +23,6 @@ function money(n) {
 }
 
 /* ── constants ───────────────────────────────────────────── */
-const CATEGORIES = [
-  'Faith & heritage',
-  'City spaces',
-  'Culture & history',
-  'Nature & outdoors',
-];
-
 const EMPTY = {
   name: '',
   category: 'Faith & heritage',
@@ -53,22 +43,32 @@ const NAV = [
 ];
 
 /* ── component ───────────────────────────────────────────── */
-export default function Admin({ user, onChanged, onLogout }) {
+export default function Admin({ user, checkingSession, onChanged, onLogout }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [section,  setSection]  = useState('dashboard');
   const [places,   setPlaces]   = useState([]);
   const [edit,     setEdit]     = useState(null);
   const [error,    setError]    = useState('');
+  const [loadError, setLoadError] = useState('');
   const [message,  setMessage]  = useState('');
   const [busy,     setBusy]     = useState(false);
   const [search,   setSearch]   = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [loading, setLoading] = useState(false);
+  const saveLock = useRef(false);
 
   /* load attractions */
   async function load() {
+    setLoading(true);
+    setError('');
+    setLoadError('');
     try {
       setPlaces(await api('/admin/attractions'));
     } catch (e) {
       setError(e.message);
+      setLoadError(e.message);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -77,7 +77,10 @@ export default function Admin({ user, onChanged, onLogout }) {
   }, [user]);
 
   /* helpers */
-  const set = (key, value) => setEdit(s => ({ ...s, [key]: value }));
+  const set = (key, value) => {
+    setEdit(s => ({ ...s, [key]: value }));
+    setError('');
+  };
 
   function navigate(next) {
     setSection(next);
@@ -98,6 +101,13 @@ export default function Admin({ user, onChanged, onLogout }) {
   /* save attraction */
   async function save(e) {
     e.preventDefault();
+    if (saveLock.current) return;
+    const validation = validateAttractionForm(edit);
+    if (Object.keys(validation).length) {
+      setError(Object.values(validation).join(' '));
+      return;
+    }
+    saveLock.current = true;
     setBusy(true);
     setError('');
     try {
@@ -113,16 +123,32 @@ export default function Admin({ user, onChanged, onLogout }) {
     } catch (err) {
       setError(err.message);
     } finally {
+      saveLock.current = false;
       setBusy(false);
+    }
+  }
+
+  async function publish(a) {
+    if (a.archived) return;
+    setError('');
+    try {
+      await api('/admin/attractions/' + encodeURIComponent(a.id) + '/publish', {
+        published: !a.published,
+      }, 'PATCH');
+      await load();
+      await onChanged?.();
+      setMessage(a.published ? 'Attraction unpublished.' : 'Attraction published and visible in Explore.');
+    } catch (err) {
+      setError(err.message);
     }
   }
 
   /* archive / restore */
   async function archive(a) {
-    if (!a.archived && !confirm('Archive this attraction? It will be hidden from new public plans.')) return;
+    if (!a.archived && !window.confirm('Archive this attraction? It will disappear from public browsing.')) return;
     setError('');
     try {
-      await api('/admin/attractions/' + a.id + '/archive', { archived: !a.archived }, 'PATCH');
+      await api('/admin/attractions/' + encodeURIComponent(a.id) + '/archive', { archived: !a.archived }, 'PATCH');
       await load();
       await onChanged?.();
       setMessage(
@@ -136,6 +162,8 @@ export default function Admin({ user, onChanged, onLogout }) {
   }
 
   /* access guards */
+  if (checkingSession) return <div className="empty" role="status">Checking your session…</div>;
+
   if (!user) return (
     <div className="empty">
       <h1>Administrator login</h1>
@@ -152,9 +180,13 @@ export default function Admin({ user, onChanged, onLogout }) {
     </div>
   );
 
-  const filtered = places.filter(a =>
-    a.name.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filtered = places.filter(a => {
+    const matchesSearch = [a.name, a.category].some(value =>
+      String(value || '').toLowerCase().includes(search.trim().toLowerCase()),
+    );
+    const itemStatus = a.archived ? 'archived' : a.published ? 'published' : 'draft';
+    return matchesSearch && (statusFilter === 'all' || itemStatus === statusFilter);
+  });
 
   /* ── render ───────────────────────────────────────────── */
   return (
@@ -265,7 +297,12 @@ export default function Admin({ user, onChanged, onLogout }) {
           </div>
 
           {/* alerts */}
-          {error   && <p className="alert"  role="alert"  >{error}</p>}
+          {error && (
+            <p className="alert" role="alert">
+              {error}
+              {loadError && <button type="button" onClick={load}>Try again</button>}
+            </p>
+          )}
           {message && <p className="notice" role="status" >{message}</p>}
 
           {/* ── editor ── */}
@@ -293,7 +330,7 @@ export default function Admin({ user, onChanged, onLogout }) {
                       value={edit.category}
                       onChange={e => set('category', e.target.value)}
                     >
-                      {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                      {adminCategories.map(c => <option key={c}>{c}</option>)}
                     </select>
                   </label>
 
@@ -470,6 +507,16 @@ export default function Admin({ user, onChanged, onLogout }) {
                       value={search}
                       onChange={e => setSearch(e.target.value)}
                     />
+                    <select
+                      aria-label="Filter attractions by status"
+                      value={statusFilter}
+                      onChange={e => setStatusFilter(e.target.value)}
+                    >
+                      <option value="all">All statuses</option>
+                      <option value="published">Published</option>
+                      <option value="draft">Drafts</option>
+                      <option value="archived">Archived</option>
+                    </select>
                     <button
                       type="button"
                       className="auth-submit"
@@ -479,6 +526,10 @@ export default function Admin({ user, onChanged, onLogout }) {
                     </button>
                   </div>
                 </div>
+
+                {loading && places.length === 0 && (
+                  <p className="admin-list-state" role="status">Loading attractions…</p>
+                )}
 
                 {/* desktop table */}
                 <div className="table-scroll">
@@ -504,16 +555,24 @@ export default function Admin({ user, onChanged, onLogout }) {
                           <td>{a.category}</td>
                           <td>{a.cost ? money(a.cost) : 'Free'}</td>
                           <td>
-                            <span className={a.published && !a.archived ? 'status-published' : 'status-draft'}>
+                            <span className={a.archived ? 'status-archived' : a.published ? 'status-published' : 'status-draft'}>
                               {a.archived ? 'Archived' : a.published ? 'Published' : 'Draft'}
                             </span>
                           </td>
                           <td>
                             <div className="admin-table-actions">
-                              <button className="text-button" onClick={() => startEdit(a)}>
+                              <button type="button" className="text-button" onClick={() => startEdit(a)}>
                                 Edit
                               </button>
-                              <button className="text-button archive-button" onClick={() => archive(a)}>
+                              <button
+                                type="button"
+                                className="text-button"
+                                disabled={a.archived}
+                                onClick={() => publish(a)}
+                              >
+                                {a.published ? 'Unpublish' : 'Publish'}
+                              </button>
+                              <button type="button" className="text-button archive-button" onClick={() => archive(a)}>
                                 {a.archived ? 'Restore' : 'Archive'}
                               </button>
                             </div>
@@ -523,8 +582,10 @@ export default function Admin({ user, onChanged, onLogout }) {
                       {!filtered.length && (
                         <tr>
                           <td colSpan="5" className="admin-empty">
-                            {search
-                              ? 'No attractions match your search.'
+                            {loadError && !places.length ? 'Attractions could not be loaded.'
+                              : search || statusFilter !== 'all'
+                              ? 'No attractions match your search or status filter.'
+                              : loading ? 'Loading attractions…'
                               : 'No attractions yet. Add your first place to get started.'}
                           </td>
                         </tr>
@@ -542,7 +603,7 @@ export default function Admin({ user, onChanged, onLogout }) {
                           {a.name}
                           {a.featured && <span className="admin-featured-badge">Featured</span>}
                         </h3>
-                        <span className={a.published && !a.archived ? 'status-published' : 'status-draft'}>
+                        <span className={a.archived ? 'status-archived' : a.published ? 'status-published' : 'status-draft'}>
                           {a.archived ? 'Archived' : a.published ? 'Published' : 'Draft'}
                         </span>
                       </div>
@@ -568,6 +629,15 @@ export default function Admin({ user, onChanged, onLogout }) {
                         <button
                           type="button"
                           className="text-button"
+                          disabled={a.archived}
+                          onClick={() => publish(a)}
+                          aria-label={(a.published ? 'Unpublish ' : 'Publish ') + a.name}
+                        >
+                          {a.published ? 'Unpublish' : 'Publish'}
+                        </button>
+                        <button
+                          type="button"
+                          className="text-button"
                           onClick={() => archive(a)}
                           aria-label={(a.archived ? 'Restore ' : 'Archive ') + a.name}
                         >
@@ -578,8 +648,10 @@ export default function Admin({ user, onChanged, onLogout }) {
                   ))}
                   {!filtered.length && (
                     <li className="admin-empty">
-                      {search
-                        ? 'No attractions match your search.'
+                      {loadError && !places.length ? 'Attractions could not be loaded.'
+                        : search || statusFilter !== 'all'
+                        ? 'No attractions match your search or status filter.'
+                        : loading ? 'Loading attractions…'
                         : 'No attractions yet. Add your first place to get started.'}
                     </li>
                   )}

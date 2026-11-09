@@ -236,7 +236,7 @@ gi
     display: flex;
     align-items: center;
     gap: 8px;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
 }
 
 .admin-workspace .admin-table-actions button {
@@ -298,6 +298,23 @@ gi
 .admin-shell .status-draft {
     background: #f0f2f5;
     color: #55687c;
+}
+
+.admin-shell .status-archived {
+    white-space: nowrap;
+    font-size: 11px;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+    background: #edf0f3;
+    color: #6c7885;
+}
+
+.admin-list-state {
+    margin: 0;
+    padding: 12px 22px;
+    color: #66768a;
+    font-size: 13px;
 }
 
 .admin-shell td.admin-empty {
@@ -616,6 +633,17 @@ gi
     min-height: 40px;
 }
 
+.admin-workspace .admin-directory-controls select {
+    box-sizing: border-box;
+    min-height: 40px;
+    padding: 8px 12px;
+    border: 1px solid var(--admin-border);
+    border-radius: 7px;
+    background: #fff;
+    color: #344a62;
+    font: inherit;
+}
+
 .admin-workspace .admin-directory-controls .auth-submit {
     min-height: 40px;
     padding: 10px 14px;
@@ -835,7 +863,8 @@ gi
     .admin-mobile-place-actions {
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        justify-content: flex-start;
+        flex-wrap: wrap;
         gap: 12px;
         border-top: 1px solid #edf0f5;
         padding-top: 12px;
@@ -843,6 +872,7 @@ gi
 
     .admin-workspace .admin-mobile-place-actions button {
         min-height: 44px;
+        flex: 1 1 auto;
         font-size: 12px;
         padding: 10px 14px;
     }

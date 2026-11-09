@@ -92,13 +92,6 @@ export default function App() {
     }
   }
 
-  /* ── Admin guard: redirect non-admins away from #admin ── */
-  useEffect(() => {
-    if (page === 'admin' && !checkingSession && (!user || !user.isAdmin)) {
-      window.location.hash = 'home';
-    }
-  }, [page, user, checkingSession]);
-
   /* ── Logged-in guard: redirect guests away from #trips / #profile ── */
   useEffect(() => {
     if ((page === 'trips' || page === 'profile') && !checkingSession && !user) {
@@ -130,7 +123,7 @@ export default function App() {
   } else if (page === 'profile') {
     content = user ? <ProfilePage key={page} user={user} onUpdate={setUser} /> : null;
   } else if (page === 'admin') {
-    content = (user?.isAdmin) ? <AdminPage key={page} /> : null;
+    content = <AdminPage key={page} user={user} checkingSession={checkingSession} onLogout={logout} />;
   } else {
     content = (
       <main>
@@ -141,7 +134,7 @@ export default function App() {
 
   return (
     <>
-      <header className="site-header">
+      {page !== 'admin' && <header className="site-header">
         <div className="site-header-inner">
           <a className="site-brand" href="#home">
             LakbayNaga
@@ -186,7 +179,7 @@ export default function App() {
                   Profile
                 </a>
 
-                {user.isAdmin && (
+                {user.role === 'admin' && (
                   <a
                     href="#admin"
                     aria-current={page === 'admin' ? 'page' : undefined}
@@ -227,7 +220,7 @@ export default function App() {
             )}
           </nav>
         </div>
-      </header>
+      </header>}
 
       {logoutError && (
         <p className="site-account-error" role="alert">
