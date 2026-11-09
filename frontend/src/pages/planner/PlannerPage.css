@@ -450,25 +450,6 @@
   font-size: 13px;
 }
 
-.planner-map-wrapper {
-  position: relative;
-}
-
-.planner-map-frame {
-  display: block;
-  width: 100%;
-  height: 240px;
-  border: 0;
-}
-
-.planner-map-svg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
-
 .planner-gmaps-btn {
   display: flex;
   align-items: center;
@@ -646,4 +627,25 @@
   .planner-checkboxes {
     grid-template-columns: 1fr;
   }
+}
+
+
+.planner-route-map {
+  height: 260px;
+  width: 100%;
+  isolation: isolate;
+  z-index: 0;
+}
+
+.planner-route-marker span {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 2px solid white;
+  border-radius: 50%;
+  background: #c0392b;
+  color: white;
+  font: 700 12px/1 system-ui, sans-serif;
+  box-shadow: 0 1px 4px #0005;
 }

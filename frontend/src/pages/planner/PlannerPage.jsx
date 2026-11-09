@@ -9,6 +9,7 @@ import {
   minutesToTime,
   usePlannerForm,
 } from './plannerLogic.js';
+import PlannerRouteMap from './PlannerRouteMap.jsx';
 import './PlannerPage.css';
 
 
@@ -326,6 +327,11 @@ function ItineraryResults({ result }) {
             Try increasing your budget, hours, or selecting fewer interest categories.
           </p>
         </div>
+      ) : currentDay.stops.length === 0 ? (
+        <div className="planner-empty" role="status">
+          <p>No stops are scheduled for this day.</p>
+          <p className="planner-empty-hint">Choose another day to see its planned stops.</p>
+        </div>
       ) : (
         <ol className="planner-stops">
           {currentDay.stops.map((stop, index) => (
@@ -339,7 +345,7 @@ function ItineraryResults({ result }) {
       )}
 
       {/* Map */}
-      {hasStops && (
+      {currentDay.stops.length > 0 && (
         <PlannerMap stops={currentDay.stops} day={currentDay.day} transport={settings.transport} distanceKm={currentDay.distanceKm} />
       )}
 
@@ -434,70 +440,11 @@ function PlannerMap({ stops, day, transport, distanceKm }) {
     );
   }
 
-  const lats   = validStops.map(s => s.lat);
-  const lngs   = validStops.map(s => s.lng);
-  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
-  const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
-  const latPad = Math.max((maxLat - minLat) * 0.18, 0.006);
-  const lngPad = Math.max((maxLng - minLng) * 0.18, 0.006);
-
-  const boundsLat = [minLat - latPad, maxLat + latPad];
-  const boundsLng = [minLng - lngPad, maxLng + lngPad];
-
-  const W = 600, H = 300;
-  function project(lat, lng) {
-    return {
-      x: ((lng - boundsLng[0]) / (boundsLng[1] - boundsLng[0])) * W,
-      y: (1 - (lat - boundsLat[0]) / (boundsLat[1] - boundsLat[0])) * H,
-    };
-  }
-
-  const points = validStops.map(s => project(s.lat, s.lng));
-  const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${boundsLng[0]},${boundsLat[0]},${boundsLng[1]},${boundsLat[1]}&layer=mapnik`;
-
   const mapsLink = gmapsUrl();
 
   return (
     <div className="planner-map">
-      <div className="planner-map-wrapper">
-        <iframe
-          title={`Map for day ${day}`}
-          src={mapUrl}
-          loading="lazy"
-          className="planner-map-frame"
-        />
-        <svg
-          className="planner-map-svg"
-          viewBox={`0 0 ${W} ${H}`}
-          aria-hidden="true"
-        >
-          {points.length > 1 && points.slice(0, -1).map((pt, i) => (
-            <line
-              key={i}
-              x1={pt.x} y1={pt.y}
-              x2={points[i + 1].x} y2={points[i + 1].y}
-              stroke="#c0392b"
-              strokeWidth="2"
-              strokeDasharray="6 4"
-              opacity="0.75"
-            />
-          ))}
-          {points.map((pt, i) => (
-            <g key={i} transform={`translate(${pt.x},${pt.y})`}>
-              <circle r="12" fill="#c0392b" />
-              <text
-                textAnchor="middle"
-                dominantBaseline="central"
-                fontSize="10"
-                fontWeight="700"
-                fill="white"
-              >
-                {i + 1}
-              </text>
-            </g>
-          ))}
-        </svg>
-      </div>
+      <PlannerRouteMap stops={stops} day={day} />
 
       {mapsLink && (
         <a
