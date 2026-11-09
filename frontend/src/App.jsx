@@ -4,12 +4,14 @@ import AttractionsPage from './pages/attractions/AttractionsPage.jsx';
 import AccountPage from './pages/authentication/AccountPage.jsx';
 import AttractionDetailsPage from './pages/attraction-details/AttractionDetailsPage.jsx';
 import { accountRequest } from './pages/authentication/accountLogic.js';
+import PlannerPage from './pages/planner/PlannerPage.jsx';
+import { hasPendingForm } from './pages/planner/plannerLogic.js';
 import './App.css';
 
 
 function currentPage() {
   const page = window.location.hash.slice(1);
-  const allowedPages = ['home', 'explore', 'login', 'register'];
+  const allowedPages = ['home', 'explore', 'planner', 'login', 'register'];
 
 
   if (page.startsWith('place/')) return page;
@@ -69,7 +71,7 @@ export default function App() {
     setUser(account);
     setCheckingSession(false);
     setLogoutError('');
-    window.location.hash = 'home';
+    window.location.hash = hasPendingForm() ? 'planner' : 'home';
   }
 
   async function logout() {
@@ -104,6 +106,8 @@ export default function App() {
     content = (
       <AttractionsPage key={page} />
     );
+  } else if (page === 'planner') {
+    content = <PlannerPage onNeedLogin={() => { window.location.hash = 'login'; }} />;
   } else if (page === 'login' || page === 'register') {
     content = (
       <AccountPage
@@ -145,6 +149,10 @@ export default function App() {
               }
             >
               Attractions
+            </a>
+
+            <a href="#planner" aria-current={page === 'planner' ? 'page' : undefined}>
+              Plan a trip
             </a>
 
             {checkingSession ? (
