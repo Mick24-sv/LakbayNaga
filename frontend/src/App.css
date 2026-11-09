@@ -67,5 +67,6 @@
 
   .site-header nav {
     gap: 16px;
+    flex-wrap: wrap;
   }
 }
