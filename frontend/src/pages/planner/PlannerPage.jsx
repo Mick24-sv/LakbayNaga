@@ -466,4 +466,3 @@ function PlannerMap({ stops, day, transport, distanceKm }) {
     </div>
   );
 }
-
