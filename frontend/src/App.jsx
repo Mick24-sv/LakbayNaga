@@ -3,17 +3,18 @@ import HomePage from './pages/home/HomePage.jsx';
 import AttractionsPage from './pages/attractions/AttractionsPage.jsx';
 import AccountPage from './pages/authentication/AccountPage.jsx';
 import AttractionDetailsPage from './pages/attraction-details/AttractionDetailsPage.jsx';
+import AdminPage from './pages/admin/AdminPage.jsx';
+import TripsPage from './pages/itineraries/TripsPage.jsx';
+import ProfilePage from './pages/profile/ProfilePage.jsx';
 import { accountRequest } from './pages/authentication/accountLogic.js';
 import './App.css';
 
 
 function currentPage() {
   const page = window.location.hash.slice(1);
-  const allowedPages = ['home', 'explore', 'login', 'register'];
-
+  const allowedPages = ['home', 'explore', 'login', 'register', 'trips', 'profile', 'admin'];
 
   if (page.startsWith('place/')) return page;
-
 
   return allowedPages.includes(page) ? page : 'home';
 }
@@ -91,19 +92,31 @@ export default function App() {
     }
   }
 
+  /* ── Admin guard: redirect non-admins away from #admin ── */
+  useEffect(() => {
+    if (page === 'admin' && !checkingSession && (!user || !user.isAdmin)) {
+      window.location.hash = 'home';
+    }
+  }, [page, user, checkingSession]);
+
+  /* ── Logged-in guard: redirect guests away from #trips / #profile ── */
+  useEffect(() => {
+    if ((page === 'trips' || page === 'profile') && !checkingSession && !user) {
+      window.location.hash = 'login';
+    }
+  }, [page, user, checkingSession]);
+
   let content;
 
   if (page.startsWith('place/')) {
-  content = (
-    <AttractionDetailsPage
-      key={page}
-      attractionId={page.slice('place/'.length)}
-    />
-  );
-  } else if (page === 'explore') {
     content = (
-      <AttractionsPage key={page} />
+      <AttractionDetailsPage
+        key={page}
+        attractionId={page.slice('place/'.length)}
+      />
     );
+  } else if (page === 'explore') {
+    content = <AttractionsPage key={page} />;
   } else if (page === 'login' || page === 'register') {
     content = (
       <AccountPage
@@ -112,6 +125,12 @@ export default function App() {
         onSuccess={signedIn}
       />
     );
+  } else if (page === 'trips') {
+    content = user ? <TripsPage key={page} user={user} /> : null;
+  } else if (page === 'profile') {
+    content = user ? <ProfilePage key={page} user={user} onUpdate={setUser} /> : null;
+  } else if (page === 'admin') {
+    content = (user?.isAdmin) ? <AdminPage key={page} /> : null;
   } else {
     content = (
       <main>
@@ -153,6 +172,29 @@ export default function App() {
               </span>
             ) : user ? (
               <>
+                <a
+                  href="#trips"
+                  aria-current={page === 'trips' ? 'page' : undefined}
+                >
+                  My Trips
+                </a>
+
+                <a
+                  href="#profile"
+                  aria-current={page === 'profile' ? 'page' : undefined}
+                >
+                  Profile
+                </a>
+
+                {user.isAdmin && (
+                  <a
+                    href="#admin"
+                    aria-current={page === 'admin' ? 'page' : undefined}
+                  >
+                    Admin
+                  </a>
+                )}
+
                 <span className="site-account-name">
                   Hi, {user.firstName}
                 </span>
