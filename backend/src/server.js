@@ -3,6 +3,8 @@ import {
   connectDatabase,
   disconnectDatabase
 } from './config/database.js';
+import { makeStore } from './repositories/memoryStore.js';
+import { makeMongoAuthStore } from './repositories/mongoAuthStore.js';
 
 
 dotenv.config({
@@ -40,7 +42,18 @@ try {
   const { createApp } = await import('./app.js');
 
 
-  const app = createApp({ attractionRepository });
+  const store = persistent
+    ? makeMongoAuthStore()
+    : makeStore();
+
+  if (persistent) {
+    await store.initialize();
+  }
+
+  const app = createApp({
+    store,
+    attractionRepository
+  });
   const port = Number(process.env.PORT || 3001);
 
 
