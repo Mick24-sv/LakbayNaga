@@ -62,11 +62,14 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
     setLoading(true);
     setError('');
     setLoadError('');
+    setMessage('');
     try {
       setPlaces(await api('/admin/attractions'));
+      return true;
     } catch (e) {
       setError(e.message);
       setLoadError(e.message);
+      return false;
     } finally {
       setLoading(false);
     }
@@ -83,6 +86,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
   };
 
   function navigate(next) {
+    if (saveLock.current) return;
     setSection(next);
     setMenuOpen(false);
     setEdit(null);
@@ -91,6 +95,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
   }
 
   function startEdit(place) {
+    if (saveLock.current) return;
     setEdit({ ...EMPTY, ...place });
     setSection('attractions');
     setMenuOpen(false);
@@ -98,28 +103,25 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
     setMessage('');
   }
 
-  /* save attraction */
-  async function save(e) {
-    e.preventDefault();
+  // A shared synchronous lock prevents duplicate mutations before React rerenders.
+  async function mutate(path, body, method, successMessage, closeEditor = false) {
     if (saveLock.current) return;
-    const validation = validateAttractionForm(edit);
-    if (Object.keys(validation).length) {
-      setError(Object.values(validation).join(' '));
-      return;
-    }
     saveLock.current = true;
     setBusy(true);
     setError('');
+    setMessage('');
     try {
-      await api(
-        '/admin/attractions' + (edit.id ? '/' + edit.id : ''),
-        edit,
-        edit.id ? 'PUT' : 'POST',
-      );
-      await load();
+      const saved = await api(path, body, method);
+      // Keep the confirmed response even if the following list refresh fails.
+      setPlaces(current => [...current.filter(place => place.id !== saved.id), saved]);
+      if (closeEditor) setEdit(null);
+      const refreshed = await load();
+      if (refreshed) {
+        setMessage(successMessage);
+      } else {
+        setError('Your change was saved, but the list could not be refreshed. Try again to reload it.');
+      }
       await onChanged?.();
-      setEdit(null);
-      setMessage('Attraction saved. Published changes are now visible in Explore.');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -128,37 +130,42 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
     }
   }
 
-  async function publish(a) {
-    if (a.archived) return;
-    setError('');
-    try {
-      await api('/admin/attractions/' + encodeURIComponent(a.id) + '/publish', {
-        published: !a.published,
-      }, 'PATCH');
-      await load();
-      await onChanged?.();
-      setMessage(a.published ? 'Attraction unpublished.' : 'Attraction published and visible in Explore.');
-    } catch (err) {
-      setError(err.message);
+  async function save(e) {
+    e.preventDefault();
+    if (saveLock.current) return;
+    const validation = validateAttractionForm(edit);
+    if (Object.keys(validation).length) {
+      setError(Object.values(validation).join(' '));
+      return;
     }
+    await mutate(
+      '/admin/attractions' + (edit.id ? '/' + encodeURIComponent(edit.id) : ''),
+      edit,
+      edit.id ? 'PUT' : 'POST',
+      'Attraction saved.',
+      true,
+    );
   }
 
-  /* archive / restore */
+  async function publish(a) {
+    if (a.archived || saveLock.current) return;
+    await mutate(
+      '/admin/attractions/' + encodeURIComponent(a.id) + '/publish',
+      { published: !a.published },
+      'PATCH',
+      a.published ? 'Attraction unpublished.' : 'Attraction published and visible in Explore.',
+    );
+  }
+
   async function archive(a) {
+    if (saveLock.current) return;
     if (!a.archived && !window.confirm('Archive this attraction? It will disappear from public browsing.')) return;
-    setError('');
-    try {
-      await api('/admin/attractions/' + encodeURIComponent(a.id) + '/archive', { archived: !a.archived }, 'PATCH');
-      await load();
-      await onChanged?.();
-      setMessage(
-        a.archived
-          ? 'Attraction restored as a draft. Edit it to publish.'
-          : 'Attraction archived. Existing saved itineraries are retained.',
-      );
-    } catch (err) {
-      setError(err.message);
-    }
+    await mutate(
+      '/admin/attractions/' + encodeURIComponent(a.id) + '/archive',
+      { archived: !a.archived },
+      'PATCH',
+      a.archived ? 'Attraction restored as a draft.' : 'Attraction archived.',
+    );
   }
 
   /* access guards */
@@ -209,7 +216,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
               key={key}
               className={section === key ? 'active' : ''}
               aria-current={section === key ? 'page' : undefined}
-              onClick={() => navigate(key)}
+              disabled={busy} onClick={() => navigate(key)}
             >
               {label}
             </button>
@@ -290,7 +297,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
             </div>
 
             {edit && (
-              <button className="outline" onClick={() => navigate('attractions')}>
+              <button className="outline" disabled={busy} onClick={() => navigate('attractions')}>
                 Back to attractions
               </button>
             )}
@@ -316,7 +323,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
 
                   <label>
                     Name
-                    <input
+                    <input disabled={busy}
                       required
                       maxLength="120"
                       value={edit.name}
@@ -326,7 +333,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
 
                   <label>
                     Category
-                    <select
+                    <select disabled={busy}
                       value={edit.category}
                       onChange={e => set('category', e.target.value)}
                     >
@@ -336,7 +343,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
 
                   <label>
                     Description
-                    <textarea
+                    <textarea disabled={busy}
                       required
                       maxLength="1200"
                       value={edit.description}
@@ -350,7 +357,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
 
                   <label>
                     Address / area
-                    <input
+                    <input disabled={busy}
                       required
                       maxLength="200"
                       value={edit.area}
@@ -361,7 +368,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
                   <div className="row">
                     <label>
                       Entrance fee per person (₱)
-                      <input
+                      <input disabled={busy}
                         required
                         type="number"
                         min="0"
@@ -373,7 +380,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
                     </label>
                     <label>
                       Visit duration (minutes)
-                      <input
+                      <input disabled={busy}
                         required
                         type="number"
                         min="15"
@@ -386,7 +393,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
 
                   <label>
                     Opening hours / visitor note
-                    <input
+                    <input disabled={busy}
                       maxLength="200"
                       value={edit.openingHours}
                       onChange={e => set('openingHours', e.target.value)}
@@ -396,7 +403,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
                   <div className="row">
                     <label>
                       Latitude
-                      <input
+                      <input disabled={busy}
                         type="number"
                         step="any"
                         min="-90"
@@ -407,7 +414,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
                     </label>
                     <label>
                       Longitude
-                      <input
+                      <input disabled={busy}
                         type="number"
                         step="any"
                         min="-180"
@@ -419,6 +426,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
                   </div>
 
                   <RouteMap
+                    disabled={busy}
                     stops={
                       edit.lat !== '' && edit.lat != null &&
                       edit.lng !== '' && edit.lng != null
@@ -437,7 +445,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
               <aside>
                 <div className="panel">
                   <label className="checkbox">
-                    <input
+                    <input disabled={busy || Boolean(edit.archived)}
                       type="checkbox"
                       checked={edit.published}
                       onChange={e => set('published', e.target.checked)}
@@ -446,7 +454,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
                   </label>
 
                   <label className="checkbox">
-                    <input
+                    <input disabled={busy}
                       type="checkbox"
                       checked={Boolean(edit.featured)}
                       onChange={e => set('featured', e.target.checked)}
@@ -466,7 +474,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
                   <button
                     type="button"
                     className="outline full"
-                    onClick={() => setEdit(null)}
+                    disabled={busy} onClick={() => setEdit(null)}
                   >
                     Cancel
                   </button>
@@ -520,7 +528,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
                     <button
                       type="button"
                       className="auth-submit"
-                      onClick={() => startEdit(EMPTY)}
+                      disabled={busy || loading} onClick={() => startEdit(EMPTY)}
                     >
                       + Add attraction
                     </button>
@@ -561,18 +569,18 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
                           </td>
                           <td>
                             <div className="admin-table-actions">
-                              <button type="button" className="text-button" onClick={() => startEdit(a)}>
+                              <button type="button" className="text-button" disabled={busy || loading} onClick={() => startEdit(a)}>
                                 Edit
                               </button>
                               <button
                                 type="button"
                                 className="text-button"
-                                disabled={a.archived}
+                                disabled={busy || loading || a.archived}
                                 onClick={() => publish(a)}
                               >
                                 {a.published ? 'Unpublish' : 'Publish'}
                               </button>
-                              <button type="button" className="text-button archive-button" onClick={() => archive(a)}>
+                              <button type="button" className="text-button archive-button" disabled={busy || loading} onClick={() => archive(a)}>
                                 {a.archived ? 'Restore' : 'Archive'}
                               </button>
                             </div>
@@ -621,7 +629,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
                         <button
                           type="button"
                           className="outline"
-                          onClick={() => startEdit(a)}
+                          disabled={busy || loading} onClick={() => startEdit(a)}
                           aria-label={'Edit ' + a.name}
                         >
                           Edit details
@@ -629,7 +637,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
                         <button
                           type="button"
                           className="text-button"
-                          disabled={a.archived}
+                          disabled={busy || loading || a.archived}
                           onClick={() => publish(a)}
                           aria-label={(a.published ? 'Unpublish ' : 'Publish ') + a.name}
                         >
@@ -638,7 +646,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
                         <button
                           type="button"
                           className="text-button"
-                          onClick={() => archive(a)}
+                          disabled={busy || loading} onClick={() => archive(a)}
                           aria-label={(a.archived ? 'Restore ' : 'Archive ') + a.name}
                         >
                           {a.archived ? 'Restore' : 'Archive'}

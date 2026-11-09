@@ -1,204 +1,72 @@
 import { useState } from 'react';
+import PasswordInput from '../../components/forms/PasswordInput.jsx';
 import './ProfilePage.css';
 
-export default function ProfilePage({ user, onUpdate }) {
-  const [tab, setTab] = useState('profile');
-
-  /* ── Profile form state ── */
-  const [profile, setProfile] = useState({
+export default function ProfilePage({ user }) {
+  const [names, setNames] = useState({
     firstName: user?.firstName ?? '',
-    lastName:  user?.lastName  ?? '',
-    email:     user?.email     ?? '',
+    lastName: user?.lastName ?? '',
   });
-  const [profileMsg, setProfileMsg] = useState('');
+  const [passwords, setPasswords] = useState({ current: '', next: '' });
+  const [error, setError] = useState('');
 
-  /* ── Password form state ── */
-  const [passwords, setPasswords] = useState({
-    current: '',
-    next:    '',
-    confirm: '',
-  });
-  const [passwordMsg, setPasswordMsg] = useState('');
-  const [passwordError, setPasswordError] = useState('');
-
-  /* ── Handlers ── */
-  function handleProfileSave(e) {
-    e.preventDefault();
-    // Optimistically update the parent's user state (name shown in nav).
-    if (onUpdate) onUpdate(prev => ({ ...prev, ...profile }));
-    setProfileMsg('Profile updated!');
-    setTimeout(() => setProfileMsg(''), 3000);
+  function saveProfile(event) {
+    event.preventDefault();
+    setError('Profile editing is not available yet. No changes were saved.');
   }
 
-  function handlePasswordSave(e) {
-    e.preventDefault();
-    setPasswordError('');
-    if (passwords.next.length < 12) {
-      setPasswordError('New password must be at least 12 characters.');
-      return;
-    }
-    if (passwords.next !== passwords.confirm) {
-      setPasswordError('New passwords do not match.');
-      return;
-    }
-    // Frontend only — just show success message.
-    setPasswords({ current: '', next: '', confirm: '' });
-    setPasswordMsg('Password updated!');
-    setTimeout(() => setPasswordMsg(''), 3000);
+  function savePassword(event) {
+    event.preventDefault();
+    setError('Password changes are not available yet. Your password has not changed.');
   }
-
-  /* ── Avatar initials ── */
-  const initials = [profile.firstName[0], profile.lastName[0]]
-    .filter(Boolean)
-    .join('')
-    .toUpperCase() || '?';
 
   return (
     <main className="profile-page">
       <div className="profile-container">
-        {/* Header */}
-        <div className="profile-header">
-          <div className="profile-avatar-wrap">
-            <div className="profile-avatar">{initials}</div>
-          </div>
-          <div>
-            <p className="profile-eyebrow">Account</p>
-            <h1>{profile.firstName} {profile.lastName}</h1>
-            <p className="profile-email">{profile.email}</p>
-          </div>
-        </div>
+        <header className="profile-heading">
+          <div className="profile-eyebrow">YOUR ACCOUNT</div>
+          <h1>My profile</h1>
+          <p>Keep your details up to date.</p>
+        </header>
 
-        {/* Tabs */}
-        <div className="profile-tabs" role="tablist">
-          <button
-            role="tab"
-            aria-selected={tab === 'profile'}
-            className={tab === 'profile' ? 'profile-tab active' : 'profile-tab'}
-            onClick={() => setTab('profile')}
-          >
-            Profile
-          </button>
-          <button
-            role="tab"
-            aria-selected={tab === 'password'}
-            className={tab === 'password' ? 'profile-tab active' : 'profile-tab'}
-            onClick={() => setTab('password')}
-          >
-            Password
-          </button>
-        </div>
+        {error && <p className="profile-feedback" role="alert">{error}</p>}
 
-        {/* ── Profile tab ── */}
-        {tab === 'profile' && (
-          <form className="profile-form panel" onSubmit={handleProfileSave}>
-            <h2 className="profile-section-heading">Personal Information</h2>
-
+        <div className="profile-grid">
+          <form className="profile-panel" onSubmit={saveProfile} aria-labelledby="profile-personal-heading">
+            <h2 id="profile-personal-heading">Personal information</h2>
             <div className="profile-row">
-              <label className="profile-label">
+              <label>
                 First name
-                <input
-                  className="profile-input"
-                  type="text"
-                  maxLength={60}
-                  required
-                  value={profile.firstName}
-                  onChange={e => setProfile(p => ({ ...p, firstName: e.target.value }))}
-                />
+                <input required maxLength={60} autoComplete="given-name"
+                  value={names.firstName}
+                  onChange={event => setNames(current => ({ ...current, firstName: event.target.value }))} />
               </label>
-              <label className="profile-label">
+              <label>
                 Last name
-                <input
-                  className="profile-input"
-                  type="text"
-                  maxLength={60}
-                  required
-                  value={profile.lastName}
-                  onChange={e => setProfile(p => ({ ...p, lastName: e.target.value }))}
-                />
+                <input required maxLength={60} autoComplete="family-name"
+                  value={names.lastName}
+                  onChange={event => setNames(current => ({ ...current, lastName: event.target.value }))} />
               </label>
             </div>
-
-            <label className="profile-label">
-              Email address
-              <input
-                className="profile-input"
-                type="email"
-                maxLength={254}
-                required
-                value={profile.email}
-                onChange={e => setProfile(p => ({ ...p, email: e.target.value }))}
-              />
+            <label>
+              Email
+              <input type="email" readOnly value={user?.email ?? ''} autoComplete="email" />
             </label>
-
-            <div className="profile-form-footer">
-              {profileMsg && (
-                <p className="profile-success" role="status">{profileMsg}</p>
-              )}
-              <button type="submit" className="profile-submit">
-                Save Changes
-              </button>
-            </div>
+            <button className="profile-primary" type="submit">Save profile</button>
           </form>
-        )}
 
-        {/* ── Password tab ── */}
-        {tab === 'password' && (
-          <form className="profile-form panel" onSubmit={handlePasswordSave}>
-            <h2 className="profile-section-heading">Change Password</h2>
-
-            <label className="profile-label">
-              Current password
-              <input
-                className="profile-input"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={passwords.current}
-                onChange={e => setPasswords(p => ({ ...p, current: e.target.value }))}
-              />
-            </label>
-
-            <label className="profile-label">
-              New password
-              <input
-                className="profile-input"
-                type="password"
-                autoComplete="new-password"
-                minLength={12}
-                maxLength={128}
-                required
-                value={passwords.next}
-                onChange={e => setPasswords(p => ({ ...p, next: e.target.value }))}
-              />
-              <span className="profile-hint">At least 12 characters.</span>
-            </label>
-
-            <label className="profile-label">
-              Confirm new password
-              <input
-                className="profile-input"
-                type="password"
-                autoComplete="new-password"
-                required
-                value={passwords.confirm}
-                onChange={e => setPasswords(p => ({ ...p, confirm: e.target.value }))}
-              />
-            </label>
-
-            {passwordError && (
-              <p className="profile-error" role="alert">{passwordError}</p>
-            )}
-
-            <div className="profile-form-footer">
-              {passwordMsg && (
-                <p className="profile-success" role="status">{passwordMsg}</p>
-              )}
-              <button type="submit" className="profile-submit">
-                Update Password
-              </button>
-            </div>
+          <form className="profile-panel" onSubmit={savePassword} aria-labelledby="profile-password-heading">
+            <h2 id="profile-password-heading">Change password</h2>
+            <PasswordInput label="Current password" required maxLength={128}
+              autoComplete="current-password" value={passwords.current}
+              onChange={event => setPasswords(current => ({ ...current, current: event.target.value }))} />
+            <PasswordInput label="New password" required minLength={12} maxLength={128}
+              autoComplete="new-password" value={passwords.next}
+              onChange={event => setPasswords(current => ({ ...current, next: event.target.value }))} />
+            <p className="profile-hint">Use 12&#8211;128 characters.</p>
+            <button className="profile-primary" type="submit">Update password</button>
           </form>
-        )}
+        </div>
       </div>
     </main>
   );

@@ -141,10 +141,11 @@ export default function App() {
 
   return (
     <>
-      {page !== 'admin' && <header className="site-header">
+      {!['admin', 'login', 'register'].includes(page) && <header className="site-header">
         <div className="site-header-inner">
           <a className="site-brand" href="#home">
-            LakbayNaga
+            <strong>LakbayNaga</strong>
+            <small>Naga City &middot; Camarines Sur, Philippines</small>
           </a>
 
           <nav aria-label="Main navigation">

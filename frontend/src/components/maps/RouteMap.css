@@ -1,0 +1,16 @@
+.location-pick-map {
+  height: 260px;
+  width: 100%;
+  border-radius: 8px;
+  isolation: isolate;
+  z-index: 0;
+}
+.location-pick-marker span {
+  display: block;
+  width: 24px;
+  height: 24px;
+  background: #0075c9;
+  border: 3px solid white;
+  border-radius: 50%;
+  box-shadow: 0 1px 5px #0006;
+}
