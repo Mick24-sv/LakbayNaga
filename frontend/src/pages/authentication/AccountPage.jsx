@@ -4,9 +4,12 @@ import './AccountPage.css';
 
 export default function AccountPage({
   mode = 'login',
-  onSuccess
+  onSuccess,
+  siteImages = {}
 }) {
   const register = mode === 'register';
+  const accountImage = typeof siteImages.account === 'string' && /^\/api\/images\/[a-f0-9]{32}$/.test(siteImages.account) ? siteImages.account : '';
+  const logo = typeof siteImages.logo === 'string' && /^\/api\/images\/[a-f0-9]{32}$/.test(siteImages.logo) ? siteImages.logo : '';
 
   const {
     values,
@@ -36,18 +39,21 @@ export default function AccountPage({
   }
 
   return (
-    <main className="account-page">
-      <section className="account-card">
+    <main className={'account-page' + (accountImage ? ' has-image' : '')}>
+      <section className="account-left">
         <a className="account-brand" href="#home">
-          LakbayNaga
+          {logo && <img src={logo} alt="LakbayNaga logo" />}
+          <b>LakbayNaga</b>
         </a>
+
+        <div className="account-card">
 
         <h1>{register ? 'Create your account' : 'Welcome back'}</h1>
 
         <p className="account-intro">
           {register
-            ? 'Create an account to start planning your Naga visits.'
-            : 'Log in to continue planning your Naga visits.'}
+            ? 'Save places and keep your plans in one place.'
+            : 'Log in to view your saved trips.'}
         </p>
 
         {error && (
@@ -103,6 +109,18 @@ export default function AccountPage({
           </span>
         </form>
 
+        <div className="account-divider"><span>or</span></div>
+        <button type="button" className="account-google" disabled aria-describedby="account-google-status">
+          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.39-.18-2.05H12v3.88h5.38a4.6 4.6 0 0 1-2 3.02v2.51h3.24c1.9-1.75 2.98-4.33 2.98-7.36Z" />
+            <path fill="#34A853" d="M12 22c2.7 0 4.96-.9 6.62-2.41l-3.24-2.51c-.9.6-2.05.97-3.38.97-2.6 0-4.81-1.76-5.6-4.12H3.05v2.59A10 10 0 0 0 12 22Z" />
+            <path fill="#FBBC05" d="M6.4 13.93a6 6 0 0 1 0-3.86V7.48H3.05a10 10 0 0 0 0 9.04l3.35-2.59Z" />
+            <path fill="#EA4335" d="M12 5.95c1.47 0 2.79.51 3.82 1.51l2.86-2.86A9.6 9.6 0 0 0 12 2a10 10 0 0 0-8.95 5.48l3.35 2.59A5.99 5.99 0 0 1 12 5.95Z" />
+          </svg>
+          Continue with Google
+        </button>
+        <p id="account-google-status" className="account-google-status">Google sign-in is currently unavailable.</p>
+
         <p className="account-switch">
           {register ? 'Already have an account?' : 'New here?'}{' '}
           <a href={register ? '#login' : '#register'}>
@@ -111,9 +129,16 @@ export default function AccountPage({
         </p>
 
         <a className="account-back" href="#home">
-          Back to LakbayNaga
+          <span aria-hidden="true">&#8592;</span> Back to LakbayNaga
         </a>
+        </div>
       </section>
+      {accountImage && (
+        <aside className="account-image">
+          <img src={accountImage} alt="Naga City" />
+          <p>&ldquo;Naga is where Bicol gathers &mdash; for faith, food, and the mountain air.&rdquo;</p>
+        </aside>
+      )}
     </main>
   );
 }

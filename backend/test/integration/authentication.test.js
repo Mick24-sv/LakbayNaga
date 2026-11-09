@@ -156,3 +156,19 @@ test('wrong passwords and unknown emails return the same generic error', () =>
     }
   })
 );
+
+test('MongoDB duplicate email returns 409 without creating a session', () =>
+  withServer(async ({ store, request }) => {
+    store.addUser = async () => {
+      const error = new Error('Database detail must not reach the client');
+      error.code = 11000;
+      throw error;
+    };
+    const response = await request('/auth/register', { body: account });
+    assert.equal(response.status, 409);
+    assert.deepEqual(await response.json(), {
+      error: 'An account with this email already exists.'
+    });
+    assert.equal(response.headers.get('set-cookie'), null);
+  })
+);
