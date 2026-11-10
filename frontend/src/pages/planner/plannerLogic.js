@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export const CATEGORIES = [
   'Faith & heritage',
@@ -45,7 +45,6 @@ export function loadPendingForm() {
   try {
     const raw = sessionStorage.getItem(PENDING_KEY);
     if (!raw) return null;
-    sessionStorage.removeItem(PENDING_KEY);
     return JSON.parse(raw);
   } catch { return null; }
 }
@@ -103,14 +102,22 @@ export function usePlannerForm() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const submitting = useRef(false);
+  const revision = useRef(0);
+
+  useEffect(() => {
+    try { sessionStorage.removeItem(PENDING_KEY); } catch { /* unavailable storage */ }
+    return () => { revision.current += 1; };
+  }, []);
 
   function update(name, value) {
-    setValues(current => ({ ...current, [name]: value }));
+    revision.current += 1;
     setResult(null);
+    setValues(current => ({ ...current, [name]: value }));
     setError('');
   }
 
   function togglePreference(category) {
+    revision.current += 1;
     setResult(null);
     setValues(current => {
       const has = current.preferences.includes(category);
@@ -128,9 +135,10 @@ export function usePlannerForm() {
     if (submitting.current) return;
     submitting.current = true;
     setBusy(true);
-    setResult(null);
     setError('');
 
+    setResult(null);
+    const requestRevision = revision.current;
     const body = settingsFromValues(values);
 
     try {
@@ -141,6 +149,8 @@ export function usePlannerForm() {
         body: JSON.stringify(body),
       });
 
+      if (requestRevision !== revision.current) return;
+
       if (response.status === 401) {
         savePendingForm(values);
         submitting.current = false;
@@ -150,9 +160,11 @@ export function usePlannerForm() {
       }
 
       const data = await response.json();
+      if (requestRevision !== revision.current) return;
       if (!response.ok) throw new Error(data.error || 'The request could not be completed.');
       setResult(data);
     } catch (err) {
+      if (requestRevision !== revision.current) return;
       if (err instanceof TypeError || err instanceof SyntaxError) {
         setError('Unable to connect. Please check your connection and try again.');
       } else {
@@ -166,4 +178,3 @@ export function usePlannerForm() {
 
   return { values, update, togglePreference, generate, result, busy, error };
 }
-

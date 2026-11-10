@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import {
   BUDGET_MAX,
   BUDGET_SLIDER_MAX,
@@ -9,6 +9,7 @@ import {
   minutesToTime,
   usePlannerForm,
 } from './plannerLogic.js';
+import PlannerRouteMap from './PlannerRouteMap.jsx';
 import './PlannerPage.css';
 
 
@@ -275,11 +276,7 @@ function ItineraryResults({ result }) {
 
   const { days, totals, notice, settings } = result;
   const hasStops = result.stops.length > 0;
-  const selectedDay = days.some(day => day.day === activeDay)
-    ? activeDay
-    : days[0]?.day ?? 1;
-  const currentDay = days.find(day => day.day === selectedDay) ?? days[0];
-  const hasStopsToday = Boolean(currentDay?.stops?.length);
+  const currentDay = days.find(d => d.day === activeDay) ?? days[0];
 
   const totalStops  = result.stops.length;
   const totalMins   = totals.minutes;
@@ -304,7 +301,7 @@ function ItineraryResults({ result }) {
             <button
               key={day.day}
               role="tab"
-              aria-selected={selectedDay === day.day}
+              aria-selected={activeDay === day.day}
               className="planner-day-tab"
               onClick={() => setActiveDay(day.day)}
             >
@@ -330,13 +327,10 @@ function ItineraryResults({ result }) {
             Try increasing your budget, hours, or selecting fewer interest categories.
           </p>
         </div>
-      ) : !hasStopsToday ? (
+      ) : currentDay.stops.length === 0 ? (
         <div className="planner-empty" role="status">
-          <p>No attractions are scheduled for Day {currentDay.day}.</p>
-          <p className="planner-empty-hint">
-            Other days have planned stops. Choose another day above or adjust your
-            trip settings and generate a new itinerary.
-          </p>
+          <p>No stops are scheduled for this day.</p>
+          <p className="planner-empty-hint">Choose another day to see its planned stops.</p>
         </div>
       ) : (
         <ol className="planner-stops">
@@ -351,8 +345,8 @@ function ItineraryResults({ result }) {
       )}
 
       {/* Map */}
-      {hasStopsToday && (
-        <PlannerMap key={currentDay.day} stops={currentDay.stops} day={currentDay.day} transport={settings.transport} distanceKm={currentDay.distanceKm} />
+      {currentDay.stops.length > 0 && (
+        <PlannerMap stops={currentDay.stops} day={currentDay.day} transport={settings.transport} distanceKm={currentDay.distanceKm} />
       )}
 
       {/* Expense summary */}
@@ -420,9 +414,6 @@ function StopRow({ stop, index }) {
 // ── Map ───────────────────────────────────────────────────────────────────────
 
 function PlannerMap({ stops, day, transport, distanceKm }) {
-  const [zoom, setZoom] = useState(() => fitZoom(stops));
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const drag = useRef(null);
   const validStops = stops.filter(s => Number.isFinite(s.lat) && Number.isFinite(s.lng));
 
   const gmTravelMode = { walk: 'walking', public: 'transit', private: 'driving' }[transport] ?? 'transit';
@@ -449,107 +440,11 @@ function PlannerMap({ stops, day, transport, distanceKm }) {
     );
   }
 
-  const W = 600, H = 300;
-  const tileSize = 256;
-  const tileCount = 2 ** zoom;
-  const centerLat = (Math.min(...validStops.map(stop => stop.lat)) + Math.max(...validStops.map(stop => stop.lat))) / 2;
-  const centerLng = (Math.min(...validStops.map(stop => stop.lng)) + Math.max(...validStops.map(stop => stop.lng))) / 2;
-  const centerX = worldX(centerLng, zoom);
-  const centerY = worldY(centerLat, zoom);
-  const points = validStops.map(stop => ({
-    x: worldX(stop.lng, zoom) - centerX + W / 2 + pan.x,
-    y: worldY(stop.lat, zoom) - centerY + H / 2 + pan.y,
-  }));
-  const firstTileX = Math.floor((centerX - pan.x - W / 2) / tileSize);
-  const lastTileX = Math.floor((centerX - pan.x + W / 2) / tileSize);
-  const firstTileY = Math.max(0, Math.floor((centerY - pan.y - H / 2) / tileSize));
-  const lastTileY = Math.min(tileCount - 1, Math.floor((centerY - pan.y + H / 2) / tileSize));
-  const tiles = [];
-  for (let y = firstTileY; y <= lastTileY; y += 1) {
-    for (let x = firstTileX; x <= lastTileX; x += 1) {
-      const wrappedX = ((x % tileCount) + tileCount) % tileCount;
-      tiles.push({
-        key: `${zoom}-${x}-${y}`,
-        url: `https://tile.openstreetmap.org/${zoom}/${wrappedX}/${y}.png`,
-        x: x * tileSize - centerX + W / 2 + pan.x,
-        y: y * tileSize - centerY + H / 2 + pan.y,
-      });
-    }
-  }
-
-  function changeZoom(amount) {
-    setZoom(current => Math.max(11, Math.min(18, current + amount)));
-  }
-
-  function startPan(event) {
-    if (event.button !== 0) return;
-    event.currentTarget.setPointerCapture(event.pointerId);
-    drag.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, pan };
-  }
-
-  function movePan(event) {
-    if (drag.current?.pointerId !== event.pointerId) return;
-    const bounds = event.currentTarget.getBoundingClientRect();
-    setPan({
-      x: drag.current.pan.x + (event.clientX - drag.current.x) * W / bounds.width,
-      y: drag.current.pan.y + (event.clientY - drag.current.y) * H / bounds.height,
-    });
-  }
-
-  function stopPan(event) {
-    if (drag.current?.pointerId === event.pointerId) drag.current = null;
-  }
-
   const mapsLink = gmapsUrl();
 
   return (
     <div className="planner-map">
-      <div className="planner-map-wrapper">
-        <svg
-          className="planner-map-canvas"
-          viewBox={`0 0 ${W} ${H}`}
-          role="img"
-          aria-label={`Map of Day ${day} attraction stops. Drag to pan; use zoom buttons to change scale.`}
-          onPointerDown={startPan}
-          onPointerMove={movePan}
-          onPointerUp={stopPan}
-          onPointerCancel={stopPan}
-        >
-          <rect width={W} height={H} fill="#eaf0e9" />
-          {tiles.map(tile => (
-            <image key={tile.key} href={tile.url} x={tile.x} y={tile.y} width={tileSize} height={tileSize} />
-          ))}
-          {points.length > 1 && points.slice(0, -1).map((pt, i) => (
-            <line
-              key={i}
-              x1={pt.x} y1={pt.y}
-              x2={points[i + 1].x} y2={points[i + 1].y}
-              stroke="#c0392b"
-              strokeWidth="2"
-              strokeDasharray="6 4"
-              opacity="0.75"
-            />
-          ))}
-          {points.map((pt, i) => (
-            <g key={i} transform={`translate(${pt.x},${pt.y})`}>
-              <circle r="12" fill="#c0392b" />
-              <text
-                textAnchor="middle"
-                dominantBaseline="central"
-                fontSize="10"
-                fontWeight="700"
-                fill="white"
-              >
-                {i + 1}
-              </text>
-            </g>
-          ))}
-        </svg>
-        <div className="planner-map-controls" aria-label="Map zoom controls">
-          <button type="button" aria-label="Zoom in" onClick={() => changeZoom(1)} disabled={zoom >= 18}>+</button>
-          <button type="button" aria-label="Zoom out" onClick={() => changeZoom(-1)} disabled={zoom <= 11}>−</button>
-        </div>
-      </div>
+      <PlannerRouteMap stops={stops} day={day} />
 
       {mapsLink && (
         <a
@@ -567,31 +462,7 @@ function PlannerMap({ stops, day, transport, distanceKm }) {
         {distanceKm > 0 && (
           <> {distanceKm} km straight-line between stops; not a road-distance estimate.</>
         )}
-        {' '}Map tiles © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap contributors</a>.
       </p>
     </div>
   );
 }
-
-function worldX(lng, zoom) {
-  return ((lng + 180) / 360) * 256 * (2 ** zoom);
-}
-
-function worldY(lat, zoom) {
-  const limitedLat = Math.max(-85.05112878, Math.min(85.05112878, lat));
-  const sin = Math.sin(limitedLat * Math.PI / 180);
-  return (0.5 - Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)) * 256 * (2 ** zoom);
-}
-
-function fitZoom(stops) {
-  const valid = stops.filter(stop => Number.isFinite(stop.lat) && Number.isFinite(stop.lng));
-  if (valid.length < 2) return 15;
-  const xs = valid.map(stop => worldX(stop.lng, 0));
-  const ys = valid.map(stop => worldY(stop.lat, 0));
-  const spanX = Math.max(...xs) - Math.min(...xs);
-  const spanY = Math.max(...ys) - Math.min(...ys);
-  const zoomX = spanX > 0 ? Math.log2(600 * 0.8 / spanX) : 18;
-  const zoomY = spanY > 0 ? Math.log2(300 * 0.8 / spanY) : 18;
-  return Math.max(11, Math.min(18, Math.floor(Math.min(zoomX, zoomY))));
-}
-
