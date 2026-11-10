@@ -106,10 +106,12 @@ export function usePlannerForm() {
 
   function update(name, value) {
     setValues(current => ({ ...current, [name]: value }));
+    setResult(null);
     setError('');
   }
 
   function togglePreference(category) {
+    setResult(null);
     setValues(current => {
       const has = current.preferences.includes(category);
       return {
@@ -126,6 +128,7 @@ export function usePlannerForm() {
     if (submitting.current) return;
     submitting.current = true;
     setBusy(true);
+    setResult(null);
     setError('');
 
     const body = settingsFromValues(values);
