@@ -1,4 +1,5 @@
 import express from 'express';
+import { makeItineraryRepository } from './repositories/itineraryRepository.js';
 import { makeStore } from './repositories/memoryStore.js';
 import { makeAttractionRepository } from './repositories/attractionRepository.js';
 import { auth } from './middleware/authMiddleware.js';
@@ -14,6 +15,7 @@ import { createItineraryRoutes } from './routes/itineraryRoutes.js';
 export function createApp({
   store = makeStore(),
   attractionData = [],
+  itineraryRepository = makeItineraryRepository(),
   attractionRepository = makeAttractionRepository({
     initialData: attractionData
   })
@@ -45,7 +47,7 @@ export function createApp({
   );
 
 
-  app.use('/api', createItineraryRoutes(attractionRepository, access));
+  app.use('/api', createItineraryRoutes(attractionRepository, access, itineraryRepository));
 
   app.use('/api', notFound);
   app.use(errorHandler);

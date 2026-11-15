@@ -59,6 +59,7 @@ try {
 
   const server = app.listen(port, () => {
     console.log('LakbayNaga API listening on port ' + port);
+    console.log('Saved itinerary storage: temporary memory (MongoDB integration pending DB-04).');
     console.log(
       'Attraction storage: ' + (persistent ? 'MongoDB' : 'memory')
     );
