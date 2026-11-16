@@ -6,6 +6,11 @@ export function errorHandler(error, req, res, next) {
   if (error.type === 'entity.parse.failed') {
     return res.status(400).json({ error: 'Invalid JSON request.' });
   }
+  if (error.type === 'entity.too.large') {
+    return res.status(413).json({
+      error: 'The file is too large. The maximum is 5 MB.'
+    });
+  }
   if (error.code === 11000) {
     return res.status(409).json({
       error: 'An account with this email already exists.'
