@@ -15,14 +15,14 @@ function record(document) {
   };
 }
 
-export function makeMongoItineraryRepository() {
+export function makeMongoItineraryRepository({ model = Itinerary } = {}) {
   return {
     async initialize() {
-      await Itinerary.createIndexes();
+      await model.createIndexes();
     },
 
     async list(ownerId) {
-      const rows = await Itinerary.find({ ownerId: String(ownerId) })
+      const rows = await model.find({ ownerId: String(ownerId) })
         .sort({ createdAt: -1 })
         .lean();
       return rows.map(record);
@@ -31,12 +31,12 @@ export function makeMongoItineraryRepository() {
     async find(id, ownerId) {
       if (!validId(id)) return null;
       return record(
-        await Itinerary.findOne({ _id: id, ownerId: String(ownerId) }).lean()
+        await model.findOne({ _id: id, ownerId: String(ownerId) }).lean()
       );
     },
 
     async create(ownerId, { name, plan }) {
-      const row = await Itinerary.create({
+      const row = await model.create({
         ownerId: String(ownerId),
         name,
         plan
@@ -47,7 +47,7 @@ export function makeMongoItineraryRepository() {
     async update(id, ownerId, { name, plan }) {
       if (!validId(id)) return null;
       return record(
-        await Itinerary.findOneAndUpdate(
+        await model.findOneAndUpdate(
           { _id: id, ownerId: String(ownerId) },
           { $set: { name, plan } },
           { returnDocument: 'after', runValidators: true }
@@ -57,7 +57,7 @@ export function makeMongoItineraryRepository() {
 
     async delete(id, ownerId) {
       if (!validId(id)) return false;
-      const result = await Itinerary.deleteOne({
+      const result = await model.deleteOne({
         _id: id,
         ownerId: String(ownerId)
       });

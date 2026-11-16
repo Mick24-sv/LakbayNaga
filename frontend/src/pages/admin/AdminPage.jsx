@@ -49,7 +49,7 @@ const NAV = [
 ];
 
 /* ── component ───────────────────────────────────────────── */
-export default function Admin({ user, checkingSession, onChanged, onLogout }) {
+export default function Admin({ user, checkingSession, onChanged, onLogout, siteImages = {} }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [section,  setSection]  = useState('dashboard');
   const [places,   setPlaces]   = useState([]);
@@ -208,6 +208,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
       {/* ── sidebar ── */}
       <aside className="admin-sidebar" id="admin-navigation">
         <a className="admin-wordmark" href="#home">
+          {siteImages.logoImage && <img src={siteImages.logoImage} alt="" />}
           <div>
             LakbayNaga
             <span>Administration</span>
@@ -255,7 +256,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
           <div className="admin-topbar-actions">
             <a href="#home">View website &#8599;</a>
 
-            <span className="admin-account">
+            <a className="admin-account" href="#profile" aria-label={'Open profile for ' + (user.firstName || 'Administrator')}>
               <span className="admin-avatar" aria-hidden="true">
                 {(user.firstName || 'A').slice(0, 1).toUpperCase()}
               </span>
@@ -263,7 +264,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
                 {user.firstName || 'Administrator'}
                 <small>Administrator</small>
               </span>
-            </span>
+            </a>
 
             <button
               type="button"

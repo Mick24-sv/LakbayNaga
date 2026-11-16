@@ -1,4 +1,5 @@
 import express from 'express';
+import { makeImageRepository } from './repositories/imageRepository.js';
 import { makeItineraryRepository } from './repositories/itineraryRepository.js';
 import { makeStore } from './repositories/memoryStore.js';
 import { makeAttractionRepository } from './repositories/attractionRepository.js';
@@ -20,6 +21,7 @@ export function createApp({
   attractionData = [],
   itineraryRepository = makeItineraryRepository(),
   settingsRepository = makeSettingsRepository(),
+  imageRepository = makeImageRepository(),
   attractionRepository = makeAttractionRepository({
     initialData: attractionData
   })
@@ -53,8 +55,8 @@ export function createApp({
 
   app.use('/api', createItineraryRoutes(attractionRepository, access, itineraryRepository));
 
-  app.use('/api', createSettingsRoutes(settingsRepository, access));
-  app.use('/api', createImageRoutes(access));
+  app.use('/api', createSettingsRoutes(settingsRepository, access, imageRepository));
+  app.use('/api', createImageRoutes(access, imageRepository));
 
   app.use('/api', notFound);
   app.use(errorHandler);

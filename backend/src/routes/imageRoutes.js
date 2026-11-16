@@ -1,7 +1,5 @@
 import express, { Router } from 'express';
-import { randomBytes } from 'node:crypto';
-import mongoose from 'mongoose';
-import { Image } from '../models/Image.js';
+import { makeImageRepository } from '../repositories/imageRepository.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 
 const maxBytes = 5 * 1024 * 1024;
@@ -24,10 +22,7 @@ function detectType(buffer) {
   return null;
 }
 
-const unavailable = res =>
-  res.status(503).json({ error: 'Image storage is not available.' });
-
-export function createImageRoutes(access) {
+export function createImageRoutes(access, repository = makeImageRepository()) {
   const router = Router();
   const upload = express.raw({
     type: ['image/jpeg', 'image/png', 'image/webp'],
@@ -35,12 +30,11 @@ export function createImageRoutes(access) {
   });
 
   router.post(
-    '/admin/images',
+    ['/admin/images', '/admin/uploads'],
     access.required,
     access.admin,
     upload,
     asyncHandler(async (req, res) => {
-      if (mongoose.connection.readyState !== 1) return unavailable(res);
 
       const body = req.body;
       if (!Buffer.isBuffer(body) || !body.length) {
@@ -48,32 +42,28 @@ export function createImageRoutes(access) {
       }
 
       const contentType = detectType(body);
-      if (!contentType) {
+      if (!contentType || contentType !== req.get('content-type')?.split(';')[0].trim().toLowerCase()) {
         return res.status(400).json({ error: 'The file is not a supported image.' });
       }
 
-      const id = randomBytes(16).toString('hex');
-      await Image.create({
-        id,
+      const image = await repository.create({
         contentType,
-        size: body.length,
         data: body,
         uploadedBy: String(req.user._id)
       });
 
-      res.status(201).json({ url: '/api/images/' + id });
+      res.status(201).json({ url: '/api/images/' + image.id, imageUrl: '/api/images/' + image.id });
     })
   );
 
   router.get(
     '/images/:id',
     asyncHandler(async (req, res) => {
-      if (mongoose.connection.readyState !== 1) return unavailable(res);
       if (!/^[a-f0-9]{32}$/.test(req.params.id)) {
         return res.status(404).json({ error: 'Image not found.' });
       }
 
-      const image = await Image.findOne({ id: req.params.id });
+      const image = await repository.find(req.params.id);
       if (!image) return res.status(404).json({ error: 'Image not found.' });
 
       res.set({

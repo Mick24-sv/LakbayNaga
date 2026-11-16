@@ -50,16 +50,19 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const loadImages = () => {
-      try { setSiteImages(JSON.parse(localStorage.getItem('lakbaynaga-site-images') || '{}')); }
-      catch { setSiteImages({}); }
+    let active = true;
+    const apply = data => {
+      if (active) setSiteImages({ logoImage: data.logo || '', homepageBanner: data.hero || '', loginImage: data.account || '' });
     };
-    loadImages();
-    window.addEventListener('site-images-updated', loadImages);
-    window.addEventListener('storage', loadImages);
+    const refresh = () => accountRequest('/site-images').then(apply).catch(() => {});
+    const changed = event => event.detail ? apply(event.detail) : refresh();
+    refresh();
+    window.addEventListener('site-images-updated', changed);
+    window.addEventListener('focus', refresh);
     return () => {
-      window.removeEventListener('site-images-updated', loadImages);
-      window.removeEventListener('storage', loadImages);
+      active = false;
+      window.removeEventListener('site-images-updated', changed);
+      window.removeEventListener('focus', refresh);
     };
   }, []);
 
@@ -146,7 +149,7 @@ export default function App() {
   } else if (page === 'profile') {
     content = user ? <ProfilePage key={page} user={user} onUpdate={setUser} /> : null;
   } else if (page === 'admin') {
-    content = <AdminPage key={page} user={user} checkingSession={checkingSession} onLogout={logout} />;
+    content = <AdminPage key={page} user={user} checkingSession={checkingSession} onLogout={logout} siteImages={siteImages} />;
   } else {
     content = (
       <main>
@@ -161,8 +164,10 @@ export default function App() {
         <div className="site-header-inner">
           <a className="site-brand" href="#home">
             {siteImages.logoImage && <img src={siteImages.logoImage} alt="" />}
-            <strong>LakbayNaga</strong>
-            <small>Naga City &middot; Camarines Sur, Philippines</small>
+            <div className="site-brand-copy">
+              <strong>LakbayNaga</strong>
+              <small>Naga City &middot; Camarines Sur, Philippines</small>
+            </div>
           </a>
 
           <nav aria-label="Main navigation">
@@ -201,13 +206,6 @@ export default function App() {
                   My Trips
                 </a>
 
-                <a
-                  href="#profile"
-                  aria-current={page === 'profile' ? 'page' : undefined}
-                >
-                  Profile
-                </a>
-
                 {user.role === 'admin' && (
                   <a
                     href="#admin"
@@ -217,9 +215,20 @@ export default function App() {
                   </a>
                 )}
 
-                <span className="site-account-name">
-                  Hi, {user.firstName}
-                </span>
+                <a
+                  className="site-account-link"
+                  href="#profile"
+                  aria-label={'Open profile for ' + (user.firstName || 'your account')}
+                  aria-current={page === 'profile' ? 'page' : undefined}
+                >
+                  <span className="site-account-avatar" aria-hidden="true">
+                    {(user.firstName || 'U').slice(0, 1).toUpperCase()}
+                  </span>
+                  <span className="site-account-copy">
+                    <span className="site-account-display-name">{user.firstName || 'My account'}</span>
+                    <small>{user.role === 'admin' ? 'Administrator' : 'Tourist'}</small>
+                  </span>
+                </a>
 
                 <button
                   type="button"
