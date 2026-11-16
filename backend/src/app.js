@@ -10,12 +10,16 @@ import {
 import { createAuthRoutes } from './routes/authRoutes.js';
 import { createAttractionRoutes } from './routes/attractionRoutes.js';
 import { createItineraryRoutes } from './routes/itineraryRoutes.js';
+import { makeSettingsRepository } from './repositories/settingsRepository.js';
+import { createSettingsRoutes } from './routes/settingsRoutes.js';
+import { createImageRoutes } from './routes/imageRoutes.js';
 
 
 export function createApp({
   store = makeStore(),
   attractionData = [],
   itineraryRepository = makeItineraryRepository(),
+  settingsRepository = makeSettingsRepository(),
   attractionRepository = makeAttractionRepository({
     initialData: attractionData
   })
@@ -48,6 +52,9 @@ export function createApp({
 
 
   app.use('/api', createItineraryRoutes(attractionRepository, access, itineraryRepository));
+
+  app.use('/api', createSettingsRoutes(settingsRepository, access));
+  app.use('/api', createImageRoutes(access));
 
   app.use('/api', notFound);
   app.use(errorHandler);
