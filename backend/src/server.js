@@ -5,6 +5,11 @@ import {
 } from './config/database.js';
 import { makeStore } from './repositories/memoryStore.js';
 import { makeMongoAuthStore } from './repositories/mongoAuthStore.js';
+import { makeItineraryRepository } from './repositories/itineraryRepository.js';
+import { makeMongoItineraryRepository } from './repositories/mongoItineraryRepository.js';
+import { makeSettingsRepository } from './repositories/settingsRepository.js';
+import { defaultSettings } from './services/settingsService.js';
+import { Image } from './models/Image.js';
 
 
 dotenv.config({
@@ -35,8 +40,20 @@ try {
     persistent
   });
 
+  const itineraryRepository = persistent
+    ? makeMongoItineraryRepository()
+    : makeItineraryRepository();
+
 
   await attractionRepository.initialize();
+  if (persistent) await itineraryRepository.initialize();
+  if (persistent) await Image.createIndexes();
+
+  const settingsRepository = makeSettingsRepository({
+    persistent,
+    defaults: defaultSettings
+  });
+  await settingsRepository.initialize();
 
 
   const { createApp } = await import('./app.js');
@@ -52,13 +69,16 @@ try {
 
   const app = createApp({
     store,
-    attractionRepository
+    attractionRepository,
+    itineraryRepository,
+    settingsRepository
   });
   const port = Number(process.env.PORT || 3001);
 
 
   const server = app.listen(port, () => {
     console.log('LakbayNaga API listening on port ' + port);
+    console.log('Itinerary storage: ' + (persistent ? 'MongoDB' : 'memory'));
     console.log(
       'Attraction storage: ' + (persistent ? 'MongoDB' : 'memory')
     );

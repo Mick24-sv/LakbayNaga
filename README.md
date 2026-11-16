@@ -228,3 +228,43 @@ Run the ticket tests from the project root:
 ```powershell
 node --test backend/test/integration/planner.test.js
 ```
+
+
+## LNK-BE-08: Saved itinerary APIs
+
+All endpoints require the session cookie from login or registration.
+
+| Method | Endpoint | Response |
+| --- | --- | --- |
+| GET | /api/itineraries | 200, current user's trips |
+| POST | /api/itineraries | 201, created trip |
+| GET | /api/itineraries/:id | 200, owned trip |
+| PUT | /api/itineraries/:id | 200, updated trip |
+| DELETE | /api/itineraries/:id | 204, no response body |
+
+POST and PUT take the same body:
+
+```json
+{
+  "name": "My Naga visit",
+  "settings": { "budget": 1500, "hours": 6, "days": 1, "people": 1 }
+}
+```
+
+Responses contain id, ownerId, name, plan, createdAt, and updatedAt.
+The plan uses the BE-07 response format. PUT requires both name and settings.
+Settings are revalidated and the plan is regenerated from current published,
+non-archived attractions. Supplied ownerId, id, timestamps, stops, and totals
+cannot override server values. Saving an empty plan returns 400. Regenerating
+on update may change stops as attraction availability or fees change.
+Guests receive 401; missing and other users' trip IDs both return 404.
+Administrators also access only their own saved itineraries.
+
+Storage is currently in memory and disappears when the server restarts,
+even when accounts and attractions use MongoDB. DB-04 must supply a persistent
+repository implementing list(ownerId), find(id, ownerId), create(ownerId, data),
+update(id, ownerId, data), and delete(id, ownerId). Inject it through
+createApp({ itineraryRepository }) during server startup. Repository methods
+must enforce ownership themselves and return independent record snapshots.
+
+Run: node --test backend/test/integration/saved-itineraries.test.js
