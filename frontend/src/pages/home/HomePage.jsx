@@ -16,7 +16,7 @@ const benefits = [
   ['Plan your days', 'Find places that match your interests.']
 ];
 
-export default function HomePage() {
+export default function HomePage({ siteImages = {} }) {
   const [query, setQuery] = useState('');
   const [showAll, setShowAll] = useState(false);
 
@@ -55,7 +55,7 @@ export default function HomePage() {
 
   return (
     <div className="home-page">
-      <section className="home-hero" aria-labelledby="home-title">
+      <section className="home-hero" aria-labelledby="home-title" style={siteImages.homepageBanner ? { backgroundImage: `linear-gradient(90deg, rgb(13 34 56 / 78%), rgb(13 34 56 / 38%)), url("${siteImages.homepageBanner}")` } : undefined}>
         <div className="home-container home-hero-content">
           <span className="home-badge">
             Heritage, faith, and local discoveries
