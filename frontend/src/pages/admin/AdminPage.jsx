@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import RouteMap from '../../components/maps/RouteMap.jsx';
+import SiteImages from './SiteImages.jsx';
+import AttractionPhotos from './AttractionPhotos.jsx';
 import {
   adminCategories,
   adminRequest,
@@ -33,6 +35,9 @@ const EMPTY = {
   openingHours: '',
   featured: false,
   published: false,
+  imageUrl: '',
+  galleryImages: [],
+  photoCredit: '',
   lat: '',
   lng: '',
 };
@@ -40,6 +45,7 @@ const EMPTY = {
 const NAV = [
   ['dashboard',    'Dashboard'],
   ['attractions',  'Attractions'],
+  ['images',       'Website images'],
 ];
 
 /* ── component ───────────────────────────────────────────── */
@@ -285,6 +291,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
                 {edit
                   ? (edit.id ? 'Edit attraction' : 'Add attraction')
                   : section === 'attractions' ? 'Attractions'
+                  : section === 'images' ? 'Website images'
                   : 'Dashboard'}
               </h1>
               <p className="admin-description">
@@ -292,6 +299,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
                   ? 'Keep place details and visitor information up to date.'
                   : section === 'attractions'
                   ? 'Manage the places visitors can discover and plan to visit.'
+                  : section === 'images' ? 'Customize the pictures visitors see across your website.'
                   : 'An overview of your attractions and publishing status.'}
               </p>
             </div>
@@ -443,6 +451,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
 
               {/* right column (sidebar) */}
               <aside>
+                <AttractionPhotos value={edit} onChange={value => setEdit(current => ({ ...current, ...value }))} disabled={busy} onError={setError} />
                 <div className="panel">
                   <label className="checkbox">
                     <input disabled={busy || Boolean(edit.archived)}
@@ -485,6 +494,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
           ) : (
             /* ── dashboard / attractions list ── */
             <>
+              {section === 'images' ? <SiteImages onMessage={setMessage} onError={setError} /> : <>
               {section === 'dashboard' && (
                 <div className="admin-stats">
                   {[
@@ -665,6 +675,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
                   )}
                 </ul>
               </div>
+              </>}
             </>
           )}
         </div>
