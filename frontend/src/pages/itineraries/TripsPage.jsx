@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { formatPHP } from '../planner/plannerLogic.js';
 import './TripsPage.css';
 
@@ -46,46 +46,76 @@ export default function TripsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [pendingDelete, setPendingDelete] = useState('');
+  const [openingId, setOpeningId] = useState('');
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [message, setMessage] = useState('');
+  const mutationLock = useRef(false);
+  const loadingRequest = useRef(null);
 
   const loadTrips = useCallback(async () => {
+    loadingRequest.current?.abort();
+    const controller = new AbortController();
+    loadingRequest.current = controller;
     setLoading(true);
     setError('');
+    setLoadFailed(false);
     try {
-      const rows = await itineraryRequest('');
-      setTrips(Array.isArray(rows) ? rows : []);
+      const rows = await itineraryRequest('', { signal: controller.signal });
+      if (!Array.isArray(rows)) throw new Error('The server did not return a saved-itinerary list.');
+      if (controller.signal.aborted) return;
+      setTrips(rows);
     } catch (requestError) {
+      if (controller.signal.aborted) return;
+      setLoadFailed(true);
       setError(requestError instanceof TypeError
         ? 'Unable to connect. Check your connection and try again.'
         : requestError.message);
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
   }, []);
 
-  useEffect(() => { loadTrips(); }, [loadTrips]);
+  useEffect(() => { loadTrips(); return () => loadingRequest.current?.abort(); }, [loadTrips]);
 
   async function deleteTrip(trip) {
+    if (mutationLock.current || loading) return;
     if (!window.confirm(`Delete “${trip.name}”? This cannot be undone.`)) return;
+    mutationLock.current = true;
+    setMessage('');
     setPendingDelete(trip.id);
     setError('');
     try {
       await itineraryRequest('/' + encodeURIComponent(trip.id), { method: 'DELETE' });
       setTrips(current => current.filter(row => row.id !== trip.id));
+      setMessage('Itinerary deleted.');
     } catch (requestError) {
       setError(requestError instanceof TypeError
         ? 'Unable to connect. Check your connection and try again.'
         : requestError.message);
     } finally {
+      mutationLock.current = false;
       setPendingDelete('');
     }
   }
 
-  function openTrip(trip) {
+  async function openTrip(trip) {
+    if (mutationLock.current || loading) return;
+    mutationLock.current = true;
+    setOpeningId(trip.id);
+    setError('');
+    setMessage('');
     try {
-      sessionStorage.setItem(EDIT_KEY, JSON.stringify(trip));
+      // Load the authoritative owned record; the list may be stale.
+      const saved = await itineraryRequest('/' + encodeURIComponent(trip.id));
+      sessionStorage.setItem(EDIT_KEY, JSON.stringify(saved));
       window.location.hash = 'planner';
-    } catch {
-      setError('Your browser could not open this itinerary. Please try again.');
+    } catch (requestError) {
+      setError(requestError instanceof TypeError
+        ? 'Unable to connect. Check your connection and try again.'
+        : requestError.message);
+    } finally {
+      mutationLock.current = false;
+      setOpeningId('');
     }
   }
 
@@ -99,9 +129,16 @@ export default function TripsPage() {
         </header>
 
         {error && <p className="trips-feedback" role="alert">{error}</p>}
+        {message && <p className="trips-message" role="status">{message}</p>}
 
         {loading ? (
           <p className="trips-loading" role="status">Loading your saved itineraries…</p>
+        ) : loadFailed ? (
+          <div className="trips-load-error">
+            <p>Your saved itineraries could not be loaded.</p>
+            <button type="button" className="trips-open-btn" onClick={loadTrips}>Try again</button>
+            <a href="#login">Log in again</a>
+          </div>
         ) : trips.length === 0 ? <EmptyState /> : (
           <>
             <p className="trips-count" aria-live="polite">
@@ -127,8 +164,8 @@ export default function TripsPage() {
                       <p>{tripDate(plan)}</p>
                       <p className="trips-card-expenses">Est. expenses {formatPHP(plan.totals?.total)}</p>
                       <div className="trips-card-actions">
-                        <button type="button" className="trips-open-btn" onClick={() => openTrip(trip)}>Open / edit</button>
-                        <button type="button" className="trips-delete-btn" disabled={pendingDelete === trip.id} onClick={() => deleteTrip(trip)}>
+                        <button type="button" className="trips-open-btn" disabled={Boolean(pendingDelete || openingId)} onClick={() => openTrip(trip)}>{openingId === trip.id ? 'Opening...' : 'Open / edit'}</button>
+                        <button type="button" className="trips-delete-btn" disabled={Boolean(pendingDelete || openingId)} onClick={() => deleteTrip(trip)}>
                           {pendingDelete === trip.id ? 'Deleting…' : 'Delete'}
                         </button>
                       </div>

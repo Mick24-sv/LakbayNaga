@@ -107,6 +107,7 @@ export default function App() {
 
       sessionVersion.current += 1;
       setUser(null);
+      try { sessionStorage.removeItem('lakbaynaga.itinerary.edit'); sessionStorage.removeItem('lakbaynaga.planner.pending'); } catch { /* browser storage unavailable */ }
       window.location.hash = 'home';
     } catch {
       setLogoutError('Could not log out. Please try again.');

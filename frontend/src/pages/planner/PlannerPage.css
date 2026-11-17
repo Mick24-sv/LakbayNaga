@@ -657,3 +657,7 @@
 .planner-save-form p { margin: 0; color: #52647a; font-size: 13px; line-height: 20px; }
 .planner-save-form p[role="alert"] { color: #922d37; }
 .planner-save-form a { color: #1255cf; }
+
+/* Disable settings during a save so its response cannot overwrite newer edits. */
+.planner-settings-fields { display: contents; border: 0; min-width: 0; margin: 0; padding: 0; }
+.planner-settings-fields:disabled input, .planner-settings-fields:disabled select { opacity: .75; }

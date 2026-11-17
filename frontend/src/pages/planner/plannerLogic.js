@@ -42,9 +42,10 @@ function loadSavedTrip() {
   try {
     const raw = sessionStorage.getItem(EDIT_KEY);
     if (!raw) return null;
-    sessionStorage.removeItem(EDIT_KEY);
     const trip = JSON.parse(raw);
-    if (!trip?.id || !trip?.plan?.settings) return null;
+    if (typeof trip?.id !== 'string' || !trip.plan?.settings ||
+        !Array.isArray(trip.plan.stops) || !Array.isArray(trip.plan.days) ||
+        !trip.plan.days.length || !trip.plan.totals) return null;
     return trip;
   } catch { return null; }
 }
@@ -138,7 +139,7 @@ export function usePlannerForm() {
   const revision = useRef(0);
 
   useEffect(() => {
-    try { sessionStorage.removeItem(PENDING_KEY); } catch { /* unavailable storage */ }
+    try { sessionStorage.removeItem(PENDING_KEY); sessionStorage.removeItem(EDIT_KEY); } catch { /* unavailable storage */ }
     return () => { revision.current += 1; };
   }, []);
 
@@ -209,5 +210,10 @@ export function usePlannerForm() {
     }
   }
 
-  return { values, update, togglePreference, generate, result, busy, error, savedTrip, setSavedTrip };
+  function acceptSavedTrip(trip) {
+    setSavedTrip(trip);
+    setResult(trip.plan);
+  }
+
+  return { values, update, togglePreference, generate, result, busy, error, savedTrip, acceptSavedTrip };
 }
