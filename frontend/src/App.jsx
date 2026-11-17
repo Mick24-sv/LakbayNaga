@@ -203,7 +203,7 @@ export default function App() {
                   href="#trips"
                   aria-current={page === 'trips' ? 'page' : undefined}
                 >
-                  My Trips
+                  Saved trips
                 </a>
 
                 {user.role === 'admin' && (
@@ -268,7 +268,7 @@ export default function App() {
       )}
 
       {content}
-      {(['home', 'explore', 'planner'].includes(page) || page.startsWith('place/')) && (
+      {(['home', 'explore', 'planner', 'trips'].includes(page) || page.startsWith('place/')) && (
         <footer className="site-footer">
           <div className="site-footer-inner">
             <section>
