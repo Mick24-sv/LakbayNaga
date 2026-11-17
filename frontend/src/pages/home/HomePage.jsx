@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { formatFee, useHomeAttractions } from './homeLogic.js';
+import HomeHero from './HomeHero.jsx';
 import './HomePage.css';
 
 const interests = [
@@ -16,7 +17,7 @@ const benefits = [
   ['Plan your days', 'Find places that match your interests.']
 ];
 
-export default function HomePage() {
+export default function HomePage({ siteImages = {} }) {
   const [query, setQuery] = useState('');
   const [showAll, setShowAll] = useState(false);
 
@@ -55,39 +56,7 @@ export default function HomePage() {
 
   return (
     <div className="home-page">
-      <section className="home-hero" aria-labelledby="home-title">
-        <div className="home-container home-hero-content">
-          <span className="home-badge">
-            Heritage, faith, and local discoveries
-          </span>
-
-          <h1 id="home-title">
-            A welcoming city,
-            <br />
-            rooted in local character.
-          </h1>
-
-          <p>Discover Naga and find places for your next visit.</p>
-
-          <form className="home-search" onSubmit={submitSearch}>
-            <label className="home-sr-only" htmlFor="home-search">
-              Search attractions
-            </label>
-
-            <input
-              id="home-search"
-              type="search"
-              placeholder="Search basilica, plazas, landmarks..."
-              value={query}
-              onChange={event => setQuery(event.target.value)}
-            />
-
-            <button type="submit" className="home-button">
-              Search
-            </button>
-          </form>
-        </div>
-      </section>
+      <HomeHero siteImages={siteImages} query={query} onQueryChange={setQuery} onSubmit={submitSearch} />
 
       <div className="home-container home-content">
         <section className="home-benefits" aria-label="Why explore Naga">

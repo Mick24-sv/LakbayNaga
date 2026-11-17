@@ -1,20 +1,22 @@
 export class SettingsInputError extends Error {}
 
-// Example: { siteName: 'LakbayNaga' }
-export const defaultSettings = {};
+// Match the finished frontend's siteImages property names.
+export const defaultSettings = Object.freeze({ logo: '', hero: '', account: '' });
 
 export function validateSettings(body) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
     throw new SettingsInputError('Send a JSON object.');
   }
-
-  const unknown = Object.keys(body).find(
-    key => !Object.hasOwn(defaultSettings, key)
-  );
-  if (unknown) {
-    throw new SettingsInputError('Unknown setting: ' + unknown + '.');
+  const data = {};
+  for (const key of Object.keys(body)) {
+    if (!Object.hasOwn(defaultSettings, key)) {
+      throw new SettingsInputError('Unknown setting: ' + key + '.');
+    }
+    const value = body[key];
+    if (typeof value !== 'string' || (value !== '' && !/^\/api\/images\/[a-f0-9]{32}$/.test(value))) {
+      throw new SettingsInputError('Choose an uploaded image or remove it.');
+    }
+    data[key] = value;
   }
-
-  // Check each field type and length here, as adminAttractionService.js does.
-  return { ...body };
+  return data;
 }

@@ -12,7 +12,10 @@
   padding: 16px 40px;
   margin: 0 auto;
 }
-.site-brand { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; color: #243746; text-decoration: none; }
+.site-brand { display: flex; flex-direction: row; align-items: center; gap: 20px; min-width: 0; max-width: 100%; color: #243746; text-decoration: none; }
+.site-brand img { display: block; flex: 0 0 auto; width: 112px; height: 80px; object-fit: contain; }
+.site-brand-copy { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.site-brand small { overflow-wrap: anywhere; }
 .site-brand strong { display: block; font-size: 20px; line-height: 28px; font-weight: 600; }
 .site-brand small { display: block; font-size: 12px; line-height: 16px; font-weight: 400; }
 .site-header nav { display: flex; align-items: center; justify-content: flex-end; gap: 20px; flex-wrap: wrap; min-width: 0; }
@@ -31,6 +34,8 @@
 }
 .site-header nav a:hover { color: #0075c9; }
 .site-header nav a[aria-current="page"] { border-bottom-color: #4a9fd0; color: #243746; }
+.site-header nav a.site-signup-link { min-height: 40px; padding: 10px 16px; border: 0; border-radius: 8px; background: #0875cf; color: white; font: inherit; font-size: 12px; line-height: 20px; font-weight: 600; }
+.site-header nav a.site-signup-link:hover { background: #0565b5; color: white; }
 .site-logout {
   display: inline-flex;
   align-items: center;
@@ -53,6 +58,20 @@
 .site-account-name, .site-session-status { font-size: 12px; line-height: 20px; color: #65768b; overflow-wrap: anywhere; }
 .site-header a:focus-visible, .site-header button:focus-visible { outline: 2px solid #243746; outline-offset: 4px; }
 .site-account-error { padding: 12px 20px; background: #fff2f3; color: #872b38; margin: 0; font-size: 13px; }
+.site-footer { background: #1e2a3c; color: #f5f7fa; font-family: Inter, Arial, sans-serif; }
+.site-footer-inner { display: grid; grid-template-columns: 1fr .45fr 1fr; gap: 64px; max-width: 1120px; margin: 0 auto; padding: 34px 24px 30px; }
+.site-footer h2 { margin: 0 0 12px; color: #f5f7fa; font-size: 14px; line-height: 20px; font-weight: 600; }
+.site-footer p,.site-footer a { margin: 0; color: #c3cbd5; font-size: 12px; line-height: 20px; }
+.site-footer nav { display: flex; flex-direction: column; align-items: flex-start; }
+.site-footer nav a { text-decoration: none; }
+.site-footer nav a:hover { color: white; text-decoration: underline; }
+.site-footer-stripe { display: flex; height: 5px; }
+.site-footer-stripe span { flex: 1; }
+.site-footer-stripe span:nth-child(1) { background: #1266df; }
+.site-footer-stripe span:nth-child(2) { background: #e4bd20; }
+.site-footer-stripe span:nth-child(3) { background: #d93636; }
+.site-footer-stripe span:nth-child(4) { background: #159653; }
+@media(max-width:700px) { .site-footer-inner { grid-template-columns: 1fr; gap: 24px; padding: 30px 24px; } }
 @media (max-width: 1100px) {
   .site-header-inner { flex-wrap: wrap; gap: 12px 24px; }
   .site-header nav { gap: 16px; }
@@ -66,4 +85,50 @@
   .site-header nav { gap: 4px 16px; }
   .site-header nav a { padding: 8px 0; font-size: 11px; }
   .site-account-name { flex: 1 1 auto; }
+}
+
+@media (max-width: 580px) {
+  .site-brand { gap: 12px; }
+  .site-brand img { width: 72px; height: 60px; }
+  .site-brand strong { font-size: 18px; line-height: 24px; }
+  .site-brand small { font-size: 11px; line-height: 17px; }
+}
+
+/* One account entry replaces the separate Profile link and greeting. */
+.site-header nav a.site-account-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  text-align: left;
+  white-space: normal;
+}
+.site-header nav a.site-account-link:hover,
+.site-header nav a.site-account-link[aria-current="page"] {
+  border-color: #dce7f1;
+  background: #f5f8fc;
+  color: #243746;
+}
+.site-account-avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #edf2f8;
+  color: #344f6d;
+  font-size: 12px;
+  font-weight: 600;
+}
+.site-account-copy { display: flex; flex-direction: column; min-width: 0; gap: 1px; }
+.site-account-display-name { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; line-height: 18px; }
+.site-account-copy small { font-size: 10px; line-height: 16px; font-weight: 400; color: #7d8b9b; }
+.admin-topbar-actions a.admin-account { text-decoration: none; border-radius: 6px; }
+.admin-topbar-actions a.admin-account:hover { color: #0064ad; }
+@media (max-width: 580px) {
+  .site-header nav a.site-account-link { padding: 6px 8px; }
+  .site-account-display-name { max-width: 140px; }
 }

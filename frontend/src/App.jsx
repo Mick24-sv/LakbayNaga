@@ -30,6 +30,7 @@ export default function App() {
   const [checkingSession, setCheckingSession] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState('');
+  const [siteImages, setSiteImages] = useState({});
 
   // Prevent an older session check from overwriting a newer login.
   const sessionVersion = useRef(0);
@@ -45,6 +46,23 @@ export default function App() {
 
     return () => {
       window.removeEventListener('hashchange', navigate);
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    const apply = data => {
+      if (active) setSiteImages({ logoImage: data.logo || '', homepageBanner: data.hero || '', loginImage: data.account || '' });
+    };
+    const refresh = () => accountRequest('/site-images').then(apply).catch(() => {});
+    const changed = event => event.detail ? apply(event.detail) : refresh();
+    refresh();
+    window.addEventListener('site-images-updated', changed);
+    window.addEventListener('focus', refresh);
+    return () => {
+      active = false;
+      window.removeEventListener('site-images-updated', changed);
+      window.removeEventListener('focus', refresh);
     };
   }, []);
 
@@ -123,6 +141,7 @@ export default function App() {
         key={page}
         mode={page}
         onSuccess={signedIn}
+        siteImages={{ account: siteImages.loginImage, logo: siteImages.logoImage }}
       />
     );
   } else if (page === 'trips') {
@@ -130,11 +149,11 @@ export default function App() {
   } else if (page === 'profile') {
     content = user ? <ProfilePage key={page} user={user} onUpdate={setUser} /> : null;
   } else if (page === 'admin') {
-    content = <AdminPage key={page} user={user} checkingSession={checkingSession} onLogout={logout} />;
+    content = <AdminPage key={page} user={user} checkingSession={checkingSession} onLogout={logout} siteImages={siteImages} />;
   } else {
     content = (
       <main>
-        <HomePage />
+        <HomePage siteImages={siteImages} />
       </main>
     );
   }
@@ -144,8 +163,11 @@ export default function App() {
       {!['admin', 'login', 'register'].includes(page) && <header className="site-header">
         <div className="site-header-inner">
           <a className="site-brand" href="#home">
-            <strong>LakbayNaga</strong>
-            <small>Naga City &middot; Camarines Sur, Philippines</small>
+            {siteImages.logoImage && <img src={siteImages.logoImage} alt="" />}
+            <div className="site-brand-copy">
+              <strong>LakbayNaga</strong>
+              <small>Naga City &middot; Camarines Sur, Philippines</small>
+            </div>
           </a>
 
           <nav aria-label="Main navigation">
@@ -184,13 +206,6 @@ export default function App() {
                   My Trips
                 </a>
 
-                <a
-                  href="#profile"
-                  aria-current={page === 'profile' ? 'page' : undefined}
-                >
-                  Profile
-                </a>
-
                 {user.role === 'admin' && (
                   <a
                     href="#admin"
@@ -200,9 +215,20 @@ export default function App() {
                   </a>
                 )}
 
-                <span className="site-account-name">
-                  Hi, {user.firstName}
-                </span>
+                <a
+                  className="site-account-link"
+                  href="#profile"
+                  aria-label={'Open profile for ' + (user.firstName || 'your account')}
+                  aria-current={page === 'profile' ? 'page' : undefined}
+                >
+                  <span className="site-account-avatar" aria-hidden="true">
+                    {(user.firstName || 'U').slice(0, 1).toUpperCase()}
+                  </span>
+                  <span className="site-account-copy">
+                    <span className="site-account-display-name">{user.firstName || 'My account'}</span>
+                    <small>{user.role === 'admin' ? 'Administrator' : 'Tourist'}</small>
+                  </span>
+                </a>
 
                 <button
                   type="button"
@@ -224,9 +250,10 @@ export default function App() {
 
                 <a
                   href="#register"
+                  className="site-signup-link"
                   aria-current={page === 'register' ? 'page' : undefined}
                 >
-                  Create account
+                  Sign Up
                 </a>
               </>
             )}
@@ -241,6 +268,27 @@ export default function App() {
       )}
 
       {content}
+      {(['home', 'explore', 'planner'].includes(page) || page.startsWith('place/')) && (
+        <footer className="site-footer">
+          <div className="site-footer-inner">
+            <section>
+              <h2>Explore Naga</h2>
+              <p>Find places to visit in Naga City, plan your days, and keep your trips in one place.</p>
+            </section>
+            <nav aria-label="Explore links">
+              <h2>Explore</h2>
+              <a href="#explore">All attractions</a>
+              <a href="#planner">Itinerary planner</a>
+              <a href="#trips">Saved itineraries</a>
+            </nav>
+            <section>
+              <h2>City Tourism Office</h2>
+              <p>City Hall Compound, J. Miranda Ave., Naga City</p>
+            </section>
+          </div>
+          <div className="site-footer-stripe" aria-hidden="true"><span /><span /><span /><span /></div>
+        </footer>
+      )}
     </>
   );
 }

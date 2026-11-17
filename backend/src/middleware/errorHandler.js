@@ -8,7 +8,7 @@ export function errorHandler(error, req, res, next) {
   }
   if (error.type === 'entity.too.large') {
     return res.status(413).json({
-      error: 'The file is too large. The maximum is 5 MB.'
+      error: 'Request body exceeds the size limit for this endpoint.'
     });
   }
   if (error.code === 11000) {

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import RouteMap from '../../components/maps/RouteMap.jsx';
+import SiteImages from './SiteImages.jsx';
+import AttractionPhotos from './AttractionPhotos.jsx';
 import {
   adminCategories,
   adminRequest,
@@ -33,6 +35,9 @@ const EMPTY = {
   openingHours: '',
   featured: false,
   published: false,
+  imageUrl: '',
+  galleryImages: [],
+  photoCredit: '',
   lat: '',
   lng: '',
 };
@@ -40,10 +45,11 @@ const EMPTY = {
 const NAV = [
   ['dashboard',    'Dashboard'],
   ['attractions',  'Attractions'],
+  ['images',       'Website images'],
 ];
 
 /* ── component ───────────────────────────────────────────── */
-export default function Admin({ user, checkingSession, onChanged, onLogout }) {
+export default function Admin({ user, checkingSession, onChanged, onLogout, siteImages = {} }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [section,  setSection]  = useState('dashboard');
   const [places,   setPlaces]   = useState([]);
@@ -202,6 +208,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
       {/* ── sidebar ── */}
       <aside className="admin-sidebar" id="admin-navigation">
         <a className="admin-wordmark" href="#home">
+          {siteImages.logoImage && <img src={siteImages.logoImage} alt="" />}
           <div>
             LakbayNaga
             <span>Administration</span>
@@ -249,7 +256,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
           <div className="admin-topbar-actions">
             <a href="#home">View website &#8599;</a>
 
-            <span className="admin-account">
+            <a className="admin-account" href="#profile" aria-label={'Open profile for ' + (user.firstName || 'Administrator')}>
               <span className="admin-avatar" aria-hidden="true">
                 {(user.firstName || 'A').slice(0, 1).toUpperCase()}
               </span>
@@ -257,7 +264,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
                 {user.firstName || 'Administrator'}
                 <small>Administrator</small>
               </span>
-            </span>
+            </a>
 
             <button
               type="button"
@@ -285,6 +292,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
                 {edit
                   ? (edit.id ? 'Edit attraction' : 'Add attraction')
                   : section === 'attractions' ? 'Attractions'
+                  : section === 'images' ? 'Website images'
                   : 'Dashboard'}
               </h1>
               <p className="admin-description">
@@ -292,6 +300,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
                   ? 'Keep place details and visitor information up to date.'
                   : section === 'attractions'
                   ? 'Manage the places visitors can discover and plan to visit.'
+                  : section === 'images' ? 'Customize the pictures visitors see across your website.'
                   : 'An overview of your attractions and publishing status.'}
               </p>
             </div>
@@ -443,6 +452,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
 
               {/* right column (sidebar) */}
               <aside>
+                <AttractionPhotos value={edit} onChange={value => setEdit(current => ({ ...current, ...value }))} disabled={busy} onError={setError} />
                 <div className="panel">
                   <label className="checkbox">
                     <input disabled={busy || Boolean(edit.archived)}
@@ -485,6 +495,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
           ) : (
             /* ── dashboard / attractions list ── */
             <>
+              {section === 'images' ? <SiteImages onMessage={setMessage} onError={setError} /> : <>
               {section === 'dashboard' && (
                 <div className="admin-stats">
                   {[
@@ -665,6 +676,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
                   )}
                 </ul>
               </div>
+              </>}
             </>
           )}
         </div>

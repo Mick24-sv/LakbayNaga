@@ -1,30 +1,32 @@
 import { Setting } from '../models/Setting.js';
+import { defaultSettings } from '../services/settingsService.js';
 
-export function makeSettingsRepository({ persistent = false, defaults = {} } = {}) {
+export function makeSettingsRepository({ persistent = false, defaults = defaultSettings, model = Setting } = {}) {
+  const initial = structuredClone(defaults);
   let memory = {};
-
+  const result = values => structuredClone({ ...initial, ...values });
   return {
     async initialize() {
-      if (persistent) await Setting.createIndexes();
+      if (persistent) await model.createIndexes();
     },
-
     async get() {
-      if (!persistent) return { ...defaults, ...structuredClone(memory) };
-      const row = await Setting.findOne({ key: 'site' }).lean();
-      return { ...defaults, ...(row?.value ?? {}) };
+      if (!persistent) return result(memory);
+      const row = await model.findOne({ key: 'site' }).lean();
+      return result(row?.value ?? {});
     },
-
     async save(values) {
+      if (!Object.keys(values).length) return this.get();
       if (!persistent) {
-        memory = structuredClone(values);
-        return { ...defaults, ...structuredClone(memory) };
+        memory = { ...memory, ...structuredClone(values) };
+        return result(memory);
       }
-      const row = await Setting.findOneAndUpdate(
-        { key: 'site' },
-        { $set: { value: values } },
+      // Update only supplied fields, preserving other images and concurrent edits.
+      const fields = Object.fromEntries(Object.entries(values).map(([key,value]) => ['value.' + key, value]));
+      const row = await model.findOneAndUpdate(
+        { key: 'site' }, { $set: fields },
         { upsert: true, returnDocument: 'after', runValidators: true }
       ).lean();
-      return { ...defaults, ...row.value };
-    }
+      return result(row.value);
+    },
   };
 }

@@ -166,7 +166,7 @@ placeholders are separate implementation work.
 The former inline routes in `app.js` now use `routes/`, `controllers/`, and
 `services/`. Backend tests and frontend imports have been updated accordingly.
 
-## LNK-BE-07 — Itinerary generation API
+## LNK-BE-07 ï¿½ Itinerary generation API
 
 `POST /api/itineraries/generate` requires the current login session cookie.
 Guests receive HTTP 401. Invalid settings receive HTTP 400 with a JSON error.
@@ -260,11 +260,46 @@ on update may change stops as attraction availability or fees change.
 Guests receive 401; missing and other users' trip IDs both return 404.
 Administrators also access only their own saved itineraries.
 
-Storage is currently in memory and disappears when the server restarts,
-even when accounts and attractions use MongoDB. DB-04 must supply a persistent
-repository implementing list(ownerId), find(id, ownerId), create(ownerId, data),
-update(id, ownerId, data), and delete(id, ownerId). Inject it through
-createApp({ itineraryRepository }) during server startup. Repository methods
-must enforce ownership themselves and return independent record snapshots.
+Storage now uses MongoDB when MONGODB_URI is configured. Without MongoDB,
+itineraries use temporary memory and disappear on restart. MongoDB startup injects
+mongoItineraryRepository into createApp. All repository queries enforce ownership.
+The async interface remains list(ownerId), find(id, ownerId), create(ownerId, data),
+update(id, ownerId, data), and delete(id, ownerId).
 
 Run: node --test backend/test/integration/saved-itineraries.test.js
+
+
+## LNK-DB-04: Persistent trips, images, and website settings
+
+With MONGODB_URI configured, startup initializes MongoDB repositories and indexes:
+- itineraries: ownerId, name, plan, timestamps; index on ownerId + createdAt.
+- images: unique 32-character id, contentType, size, binary data, uploadedBy, timestamps.
+- settings: unique key (site), value containing logo, hero, account image URLs.
+
+Without MongoDB, each repository uses isolated temporary memory. No credentials
+are stored in the source. Existing image documents and saved trip records are preserved.
+
+GET /api/settings (alias /api/site-images) is public. PUT /api/admin/settings
+(alias /api/admin/site-images) requires an admin and accepts any subset of logo,
+hero, account. Omitted fields are preserved. An empty string clears a selected
+image. Nonempty values must reference an existing uploaded /api/images/<id> URL.
+Unknown keys, wrong types, and missing uploads return JSON 400 errors.
+
+POST /api/admin/images (alias /api/admin/uploads) accepts raw JPEG, PNG, or WebP
+bytes up to 5 MB and requires an administrator. The declared MIME type must match
+the file signature. Response: { url, imageUrl }, both containing the public URL.
+GET /api/images/:id serves the original bytes and MIME type with nosniff protection.
+This endpoint checks file signatures, not complete decoding or re-encoding;
+advanced processing/cropping belongs to the image-management integration ticket.
+
+Run npm test for regression tests. To verify real MongoDB persistence, run:
+
+```powershell
+node backend/src/scripts/check-db04-persistence.js
+```
+
+The script uses uniquely named verification collections inside the configured database.
+It checks trip CRUD/ownership, image byte retrieval, settings updates, and persistence
+after disconnect/reconnect. It drops only its verification collections afterward;
+it never edits the real trips, images, settings, or credentials. The database user
+needs read/write, index-creation, and collection-removal permissions.

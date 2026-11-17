@@ -9,7 +9,7 @@ import { makeItineraryRepository } from './repositories/itineraryRepository.js';
 import { makeMongoItineraryRepository } from './repositories/mongoItineraryRepository.js';
 import { makeSettingsRepository } from './repositories/settingsRepository.js';
 import { defaultSettings } from './services/settingsService.js';
-import { Image } from './models/Image.js';
+import { makeImageRepository } from './repositories/imageRepository.js';
 
 
 dotenv.config({
@@ -47,7 +47,8 @@ try {
 
   await attractionRepository.initialize();
   if (persistent) await itineraryRepository.initialize();
-  if (persistent) await Image.createIndexes();
+  const imageRepository = makeImageRepository({ persistent });
+  await imageRepository.initialize();
 
   const settingsRepository = makeSettingsRepository({
     persistent,
@@ -71,7 +72,8 @@ try {
     store,
     attractionRepository,
     itineraryRepository,
-    settingsRepository
+    settingsRepository,
+    imageRepository
   });
   const port = Number(process.env.PORT || 3001);
 
