@@ -36,6 +36,18 @@ const BUDGET_MAX = 1000000;
 const BUDGET_SLIDER_MAX = 50000;
 
 const PENDING_KEY = 'lakbaynaga.planner.pending';
+const EDIT_KEY = 'lakbaynaga.itinerary.edit';
+
+function loadSavedTrip() {
+  try {
+    const raw = sessionStorage.getItem(EDIT_KEY);
+    if (!raw) return null;
+    sessionStorage.removeItem(EDIT_KEY);
+    const trip = JSON.parse(raw);
+    if (!trip?.id || !trip?.plan?.settings) return null;
+    return trip;
+  } catch { return null; }
+}
 
 export function savePendingForm(values) {
   try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(values)); } catch { /* ignore */ }
@@ -97,8 +109,29 @@ export function minutesToTime(minutes, startHour = 9) {
 export { BUDGET_MAX, BUDGET_SLIDER_MAX };
 
 export function usePlannerForm() {
-  const [values, setValues] = useState(() => loadPendingForm() ?? DEFAULT_FORM);
-  const [result, setResult] = useState(null);
+  const [initial] = useState(() => {
+    const trip = loadSavedTrip();
+    const settings = trip?.plan?.settings;
+    return {
+      trip,
+      values: settings ? {
+        ...DEFAULT_FORM,
+        budget: String(settings.budget),
+        days: String(settings.days),
+        people: String(settings.people),
+        hours: String(settings.hours),
+        pace: settings.pace,
+        transport: settings.transport,
+        startDate: settings.startDate || '',
+        foodPerPersonDay: String(settings.foodPerPersonDay),
+        lodgingPerNight: String(settings.lodgingPerNight),
+        preferences: settings.preferences || [],
+      } : loadPendingForm() ?? DEFAULT_FORM,
+    };
+  });
+  const [savedTrip, setSavedTrip] = useState(initial.trip);
+  const [values, setValues] = useState(initial.values);
+  const [result, setResult] = useState(initial.trip?.plan ?? null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const submitting = useRef(false);
@@ -176,5 +209,5 @@ export function usePlannerForm() {
     }
   }
 
-  return { values, update, togglePreference, generate, result, busy, error };
+  return { values, update, togglePreference, generate, result, busy, error, savedTrip, setSavedTrip };
 }
