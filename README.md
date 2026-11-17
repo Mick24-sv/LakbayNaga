@@ -269,6 +269,17 @@ update(id, ownerId, data), and delete(id, ownerId).
 Run: node --test backend/test/integration/saved-itineraries.test.js
 
 
+## LNK-BE-10: Google sign-in and password recovery
+
+- `POST /api/auth/google` accepts a Google Identity Services ID token in `credential` (or `idToken`). The backend verifies the token with Google, checks the configured client ID and verified email, then creates or links the account and starts the normal session.
+- `POST /api/auth/password-reset/request` accepts `{ "email": "..." }`. It always returns the same response whether or not an account exists. Known accounts receive a single-use link that expires after 30 minutes.
+- `POST /api/auth/password-reset/complete` accepts `{ "token": "...", "password": "..." }`. Passwords must be 12–128 characters; successful tokens cannot be reused.
+
+Set `GOOGLE_CLIENT_ID` in `backend/.env` and the matching `VITE_GOOGLE_CLIENT_ID` in `frontend/.env` to the OAuth web client ID. Configure `FRONTEND_URL` to the public frontend origin, plus `RESEND_API_KEY` and `AUTH_EMAIL_FROM` for recovery email delivery through Resend. The reset email link opens the frontend reset form. Without the required provider/email configuration, those integrations report an unavailable status or log email delivery failure; password reset requests still use the same privacy-preserving response.
+
+Run the focused success/failure flow checks with `node --test backend/test/integration/google-password-recovery.test.js`.
+
+
 ## LNK-DB-04: Persistent trips, images, and website settings
 
 With MONGODB_URI configured, startup initializes MongoDB repositories and indexes:

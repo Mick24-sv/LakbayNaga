@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { User } from '../models/User.js';
 import { Session } from '../models/Session.js';
+import { PasswordReset } from '../models/PasswordReset.js';
 
 
 function account(document) {
@@ -19,6 +20,7 @@ export function makeMongoAuthStore() {
     async initialize() {
       await User.createIndexes();
       await Session.createIndexes();
+      await PasswordReset.createIndexes();
     },
 
 
@@ -47,11 +49,33 @@ export function makeMongoAuthStore() {
         lastName: data.lastName,
         email: data.email,
         passwordHash: data.passwordHash,
+        googleId: data.googleId,
         role: data.role
       });
 
 
       return account(user.toObject());
+    },
+
+    async userByGoogleId(googleId) {
+      return account(await User.findOne({ googleId }).lean());
+    },
+
+    async linkGoogleId(userId, googleId) {
+      return account(await User.findByIdAndUpdate(userId, { $set: { googleId } }, { new: true }).lean());
+    },
+
+    async createPasswordReset(digest, record) {
+      await PasswordReset.create({ digest, userId: String(record.userId), expiresAt: new Date(record.expiresAt) });
+    },
+
+    async consumePasswordReset(digest) {
+      const row = await PasswordReset.findOneAndDelete({ digest, expiresAt: { $gt: new Date() } }).lean();
+      return row ? account(await User.findById(row.userId).lean()) : null;
+    },
+
+    async setPassword(userId, passwordHash) {
+      return account(await User.findByIdAndUpdate(userId, { $set: { passwordHash } }, { new: true }).lean());
     },
 
 
@@ -92,6 +116,10 @@ export function makeMongoAuthStore() {
 
     async deleteSession(digest) {
       await Session.deleteOne({ digest });
+    },
+
+    async revokeUserSessions(userId) {
+      await Session.deleteMany({ userId: String(userId) });
     }
   };
 }

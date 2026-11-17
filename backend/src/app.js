@@ -22,6 +22,8 @@ export function createApp({
   itineraryRepository = makeItineraryRepository(),
   settingsRepository = makeSettingsRepository(),
   imageRepository = makeImageRepository(),
+  mailer,
+  google,
   attractionRepository = makeAttractionRepository({
     initialData: attractionData
   })
@@ -44,7 +46,7 @@ export function createApp({
   });
 
 
-  app.use('/api', createAuthRoutes(store, access));
+  app.use('/api', createAuthRoutes(store, access, { mailer, google }));
 
 
   app.use(

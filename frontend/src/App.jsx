@@ -14,6 +14,7 @@ import './App.css';
 
 function currentPage() {
   const page = window.location.hash.slice(1);
+  if (page.startsWith('reset-password')) return 'reset-password';
   const allowedPages = [
     'home', 'explore', 'planner', 'login', 'register',
     'trips', 'profile', 'admin',
@@ -136,7 +137,7 @@ export default function App() {
     content = <AttractionsPage key={page} />;
   } else if (page === 'planner') {
     content = <PlannerPage onNeedLogin={() => { window.location.hash = 'login'; }} />;
-  } else if (page === 'login' || page === 'register') {
+  } else if (page === 'login' || page === 'register' || page === 'reset-password') {
     content = (
       <AccountPage
         key={page}
@@ -161,7 +162,7 @@ export default function App() {
 
   return (
     <>
-      {!['admin', 'login', 'register'].includes(page) && <header className="site-header">
+        {!['admin', 'login', 'register', 'reset-password'].includes(page) && <header className="site-header">
         <div className="site-header-inner">
           <a className="site-brand" href="#home">
             {siteImages.logoImage && <img src={siteImages.logoImage} alt="" />}
