@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   BUDGET_MAX,
   BUDGET_SLIDER_MAX,
@@ -14,6 +14,10 @@ import './PlannerPage.css';
 
 
 export default function PlannerPage({ onNeedLogin }) {
+  const [tripName, setTripName] = useState('My Naga trip');
+  const [saveBusy, setSaveBusy] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
+  const [saveError, setSaveError] = useState('');
   const {
     values,
     update,
@@ -22,11 +26,45 @@ export default function PlannerPage({ onNeedLogin }) {
     result,
     busy,
     error,
+    savedTrip,
+    setSavedTrip,
   } = usePlannerForm();
+
+  useEffect(() => {
+    if (savedTrip?.name) setTripName(savedTrip.name);
+  }, [savedTrip?.id]);
 
   function handleSubmit(event) {
     event.preventDefault();
     generate(onNeedLogin);
+  }
+
+  async function saveItinerary(event) {
+    event.preventDefault();
+    if (saveBusy || !result?.stops?.length) return;
+    setSaveBusy(true);
+    setSaveMessage('');
+    setSaveError('');
+    try {
+      const response = await fetch('/api/itineraries' + (savedTrip?.id ? '/' + encodeURIComponent(savedTrip.id) : ''), {
+        method: savedTrip?.id ? 'PUT' : 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: tripName.trim(), settings: result.settings }),
+      });
+      const data = response.status === 204 ? null : await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || (response.status === 401 ? 'Please log in to save this itinerary.' : 'Could not save your itinerary.'));
+      }
+      setSavedTrip(data);
+      setSaveMessage(savedTrip?.id ? 'Your itinerary was updated.' : 'Your itinerary was saved.');
+    } catch (requestError) {
+      setSaveError(requestError instanceof TypeError
+        ? 'Unable to connect. Check your connection and try again.'
+        : requestError.message);
+    } finally {
+      setSaveBusy(false);
+    }
   }
 
   const days    = Math.max(1, parseInt(values.days)   || 1);
@@ -383,6 +421,19 @@ function ItineraryResults({ result }) {
       {/* Backend notice */}
       {notice && (
         <p className="planner-notice">{notice}</p>
+      )}
+
+      {hasStops && (
+        <form className="planner-save-form" onSubmit={saveItinerary}>
+          <label htmlFor="planner-trip-name">Itinerary name</label>
+          <input id="planner-trip-name" type="text" maxLength="100" required
+            value={tripName} onChange={event => setTripName(event.target.value)} />
+          <button type="submit" disabled={saveBusy}>
+            {saveBusy ? 'Saving…' : savedTrip?.id ? 'Update saved itinerary' : 'Save itinerary'}
+          </button>
+          {saveMessage && <p role="status">{saveMessage} <a href="#trips">View saved itineraries</a></p>}
+          {saveError && <p role="alert">{saveError}</p>}
+        </form>
       )}
     </div>
   );
