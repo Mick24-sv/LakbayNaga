@@ -19,6 +19,10 @@ export async function accountRequest(path, body) {
   return data;
 }
 
+export async function googleLogin(credential) {
+  return accountRequest('/auth/google', { credential });
+}
+
 export function useAccountForm(mode, onSuccess) {
   const [values, setValues] = useState({
     firstName: "",

@@ -274,6 +274,8 @@
 .account-google { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; min-height: 44px; padding: 10px 16px; border: 1px solid #d6dee8; border-radius: 5px; background: white; color: #243746; font: inherit; font-size: 13px; font-weight: 500; }
 .account-google:disabled { opacity: .65; cursor: not-allowed; }
 .account-google-status { color: #778598; text-align: center; font-size: 11px; line-height: 18px; margin: 8px 0 0; }
+.account-card .text-button { border: 0; padding: 0; background: transparent; color: #0064ad; font: inherit; font-size: 13px; cursor: pointer; }
+.account-card .text-button:hover { text-decoration: underline; }
 .account-switch { margin: 24px 0 0; color: #495b6f; font-size: 14px; line-height: 22px; }
 .account-switch a { color: #0064ad; text-decoration: none; }
 .account-switch a:hover { text-decoration: underline; }

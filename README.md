@@ -166,7 +166,7 @@ placeholders are separate implementation work.
 The former inline routes in `app.js` now use `routes/`, `controllers/`, and
 `services/`. Backend tests and frontend imports have been updated accordingly.
 
-## LNK-BE-07 — Itinerary generation API
+## LNK-BE-07 ï¿½ Itinerary generation API
 
 `POST /api/itineraries/generate` requires the current login session cookie.
 Guests receive HTTP 401. Invalid settings receive HTTP 400 with a JSON error.
@@ -228,3 +228,89 @@ Run the ticket tests from the project root:
 ```powershell
 node --test backend/test/integration/planner.test.js
 ```
+
+
+## LNK-BE-08: Saved itinerary APIs
+
+All endpoints require the session cookie from login or registration.
+
+| Method | Endpoint | Response |
+| --- | --- | --- |
+| GET | /api/itineraries | 200, current user's trips |
+| POST | /api/itineraries | 201, created trip |
+| GET | /api/itineraries/:id | 200, owned trip |
+| PUT | /api/itineraries/:id | 200, updated trip |
+| DELETE | /api/itineraries/:id | 204, no response body |
+
+POST and PUT take the same body:
+
+```json
+{
+  "name": "My Naga visit",
+  "settings": { "budget": 1500, "hours": 6, "days": 1, "people": 1 }
+}
+```
+
+Responses contain id, ownerId, name, plan, createdAt, and updatedAt.
+The plan uses the BE-07 response format. PUT requires both name and settings.
+Settings are revalidated and the plan is regenerated from current published,
+non-archived attractions. Supplied ownerId, id, timestamps, stops, and totals
+cannot override server values. Saving an empty plan returns 400. Regenerating
+on update may change stops as attraction availability or fees change.
+Guests receive 401; missing and other users' trip IDs both return 404.
+Administrators also access only their own saved itineraries.
+
+Storage now uses MongoDB when MONGODB_URI is configured. Without MongoDB,
+itineraries use temporary memory and disappear on restart. MongoDB startup injects
+mongoItineraryRepository into createApp. All repository queries enforce ownership.
+The async interface remains list(ownerId), find(id, ownerId), create(ownerId, data),
+update(id, ownerId, data), and delete(id, ownerId).
+
+Run: node --test backend/test/integration/saved-itineraries.test.js
+
+
+## LNK-BE-10: Google sign-in and password recovery
+
+- `POST /api/auth/google` accepts a Google Identity Services ID token in `credential` (or `idToken`). The backend verifies the token with Google, checks the configured client ID and verified email, then creates or links the account and starts the normal session.
+- `POST /api/auth/password-reset/request` accepts `{ "email": "..." }`. It always returns the same response whether or not an account exists. Known accounts receive a single-use link that expires after 30 minutes.
+- `POST /api/auth/password-reset/complete` accepts `{ "token": "...", "password": "..." }`. Passwords must be 12â€“128 characters; successful tokens cannot be reused.
+
+Set `GOOGLE_CLIENT_ID` in `backend/.env` and the matching `VITE_GOOGLE_CLIENT_ID` in `frontend/.env` to the OAuth web client ID. Configure `FRONTEND_URL` to the public frontend origin, plus `RESEND_API_KEY` and `AUTH_EMAIL_FROM` for recovery email delivery through Resend. The reset email link opens the frontend reset form. Without the required provider/email configuration, those integrations report an unavailable status or log email delivery failure; password reset requests still use the same privacy-preserving response.
+
+Run the focused success/failure flow checks with `node --test backend/test/integration/google-password-recovery.test.js`.
+
+
+## LNK-DB-04: Persistent trips, images, and website settings
+
+With MONGODB_URI configured, startup initializes MongoDB repositories and indexes:
+- itineraries: ownerId, name, plan, timestamps; index on ownerId + createdAt.
+- images: unique 32-character id, contentType, size, binary data, uploadedBy, timestamps.
+- settings: unique key (site), value containing logo, hero, account image URLs.
+
+Without MongoDB, each repository uses isolated temporary memory. No credentials
+are stored in the source. Existing image documents and saved trip records are preserved.
+
+GET /api/settings (alias /api/site-images) is public. PUT /api/admin/settings
+(alias /api/admin/site-images) requires an admin and accepts any subset of logo,
+hero, account. Omitted fields are preserved. An empty string clears a selected
+image. Nonempty values must reference an existing uploaded /api/images/<id> URL.
+Unknown keys, wrong types, and missing uploads return JSON 400 errors.
+
+POST /api/admin/images (alias /api/admin/uploads) accepts raw JPEG, PNG, or WebP
+bytes up to 5 MB and requires an administrator. The declared MIME type must match
+the file signature. Response: { url, imageUrl }, both containing the public URL.
+GET /api/images/:id serves the original bytes and MIME type with nosniff protection.
+This endpoint checks file signatures, not complete decoding or re-encoding;
+advanced processing/cropping belongs to the image-management integration ticket.
+
+Run npm test for regression tests. To verify real MongoDB persistence, run:
+
+```powershell
+node backend/src/scripts/check-db04-persistence.js
+```
+
+The script uses uniquely named verification collections inside the configured database.
+It checks trip CRUD/ownership, image byte retrieval, settings updates, and persistence
+after disconnect/reconnect. It drops only its verification collections afterward;
+it never edits the real trips, images, settings, or credentials. The database user
+needs read/write, index-creation, and collection-removal permissions.
