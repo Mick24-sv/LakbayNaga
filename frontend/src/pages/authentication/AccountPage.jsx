@@ -9,6 +9,8 @@ export default function AccountPage({ mode = 'login', onSuccess, siteImages = {}
   const accountImage = typeof siteImages.account === 'string' && /^\/api\/images\/[a-f0-9]{32}$/.test(siteImages.account) ? siteImages.account : '';
   const logo = typeof siteImages.logo === 'string' && /^\/api\/images\/[a-f0-9]{32}$/.test(siteImages.logo) ? siteImages.logo : '';
   const { values, update, busy, error, submit } = useAccountForm(mode, onSuccess);
+  const googleButtonRef = useRef(null);
+  const googleLock = useRef(false);
   const onSuccessRef = useRef(onSuccess);
   onSuccessRef.current = onSuccess;
   const [googleReady, setGoogleReady] = useState(false), [googleBusy, setGoogleBusy] = useState(false), [googleError, setGoogleError] = useState('');
@@ -18,27 +20,51 @@ export default function AccountPage({ mode = 'login', onSuccess, siteImages = {}
 
   useEffect(() => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    if (!clientId || isReset) return;
+    setGoogleReady(false);
+    setGoogleError('');
+    if (!clientId || isReset || resetMode) return;
     let active = true;
+    const container = googleButtonRef.current;
+    const failed = () => { if (active) setGoogleError('Google sign-in could not load. Check your connection and reload the page.'); };
     const initialize = () => {
-      if (!active || !window.google?.accounts?.id) return;
+      if (!active || !container || !window.google?.accounts?.id) return;
       window.google.accounts.id.initialize({ client_id: clientId, callback: async ({ credential }) => {
+        if (!active || googleLock.current) return;
+        if (!credential) { setGoogleError('Google sign-in did not return a credential. Please try again.'); return; }
+        googleLock.current = true;
         setGoogleBusy(true); setGoogleError('');
-        try { const data = await googleLogin(credential); if (!data?.user) throw new Error('Google sign-in did not return an account.'); onSuccessRef.current(data.user); }
-        catch (err) { setGoogleError(err.message || 'Google sign-in failed.'); }
-        finally { setGoogleBusy(false); }
+        try {
+          const data = await googleLogin(credential);
+          if (!data?.user) throw new Error('Google sign-in did not return an account.');
+          if (active) onSuccessRef.current(data.user);
+        } catch (err) { if (active) setGoogleError(err.message || 'Google sign-in failed.'); }
+        finally { googleLock.current = false; if (active) setGoogleBusy(false); }
       } });
+      container.replaceChildren();
+      window.google.accounts.id.renderButton(container, {
+        type: 'standard', theme: 'outline', size: 'large', text: 'continue_with',
+        shape: 'rectangular', locale: 'en', width: Math.min(340, container.clientWidth || 340)
+      });
       setGoogleReady(true);
     };
+    let script = document.querySelector('script[data-google-identity]');
     if (window.google?.accounts?.id) initialize();
     else {
-      let script = document.querySelector('script[data-google-identity]');
-      if (!script) { script = document.createElement('script'); script.src = 'https://accounts.google.com/gsi/client'; script.async = true; script.defer = true; script.dataset.googleIdentity = 'true'; document.head.appendChild(script); }
+      if (!script) {
+        script = document.createElement('script'); script.src = 'https://accounts.google.com/gsi/client?hl=en';
+        script.async = true; script.defer = true; script.dataset.googleIdentity = 'true';
+        document.head.appendChild(script);
+      }
       script.addEventListener('load', initialize);
-      return () => { active = false; script.removeEventListener('load', initialize); };
+      script.addEventListener('error', failed);
     }
-    return () => { active = false; };
-  }, [isReset]);
+    const timeout = window.setTimeout(() => { if (!window.google?.accounts?.id) failed(); }, 15000);
+    return () => {
+      active = false; window.clearTimeout(timeout);
+      script?.removeEventListener('load', initialize); script?.removeEventListener('error', failed);
+      container?.replaceChildren();
+    };
+  }, [isReset, resetMode]);
 
   async function requestReset(event) {
     event.preventDefault(); setResetBusy(true); setResetError(''); setResetMessage('');
@@ -80,11 +106,10 @@ export default function AccountPage({ mode = 'login', onSuccess, siteImages = {}
           </fieldset></form>
           {!register && <p><button type="button" className="text-button" onClick={() => { setResetMode(true); setResetEmail(values.email); }}>Forgot password?</button></p>}
           <div className="account-divider"><span>or</span></div>
-          <button type="button" className="account-google" disabled={!googleReady || googleBusy} aria-describedby="account-google-status" onClick={() => { setGoogleError(''); window.google?.accounts?.id.prompt(); }}>
-            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.39-.18-2.05H12v3.88h5.38a4.6 4.6 0 0 1-2 3.02v2.51h3.24c1.9-1.75 2.98-4.33 2.98-7.36Z"/><path fill="#34A853" d="M12 22c2.7 0 4.96-.9 6.62-2.41l-3.24-2.51c-.9.6-2.05.97-3.38.97-2.6 0-4.81-1.76-5.6-4.12H3.05v2.59A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.4 13.93a6 6 0 0 1 0-3.86V7.48H3.05a10 10 0 0 0 0 9.04l3.35-2.59Z"/><path fill="#EA4335" d="M12 5.95c1.47 0 2.79.51 3.82 1.51l2.86-2.86A9.6 9.6 0 0 0 12 2a10 10 0 0 0-8.95 5.48l3.35 2.59A5.99 5.99 0 0 1 12 5.95Z"/></svg>
-            {googleBusy ? 'Signing in...' : 'Continue with Google'}
-          </button>
-          <p id="account-google-status" className="account-google-status" role={googleError ? 'alert' : undefined}>{googleError || (googleReady ? 'Sign in securely with your Google account.' : 'Google sign-in is not configured.')}</p>
+          <div className={'account-google-host' + (googleBusy || busy ? ' is-busy' : '')} aria-busy={googleBusy}>
+            <div ref={googleButtonRef} />
+          </div>
+          <p id="account-google-status" className="account-google-status" role={googleError ? 'alert' : 'status'}>{googleError || (googleBusy ? 'Signing in...' : googleReady ? 'Sign in securely with your Google account.' : import.meta.env.VITE_GOOGLE_CLIENT_ID ? 'Loading Google sign-in...' : 'Google sign-in is not configured.')}</p>
           <p className="account-switch">{register ? 'Already have an account?' : 'New here?'}{' '}<a href={register ? '#login' : '#register'}>{register ? 'Log in' : 'Create an account'}</a></p>
           <a className="account-back" href="#home"><span aria-hidden="true">←</span> Back to LakbayNaga</a>
         </>}

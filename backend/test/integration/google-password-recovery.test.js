@@ -63,3 +63,15 @@ test('password recovery hides account existence and reset token is one-time', ()
     assert.equal((await request('/auth/login', { email: 'recover@example.test', password: 'replacement-password-123' })).status, 200);
   }, { mailer: async message => { delivered = message; } });
 });
+
+
+test('Google token verification rejects wrong audiences, issuers, expired tokens and unverified emails', async () => {
+  const { verifyGoogleIdToken } = await import('../../src/services/authService.js');
+  const valid = { sub: 'subject', email: 'verified@example.test', email_verified: 'true', aud: 'test-client', iss: 'https://accounts.google.com', exp: Math.floor(Date.now() / 1000) + 600 };
+  const verify = claims => verifyGoogleIdToken('test-token', { clientId: 'test-client', fetchImpl: async () => ({ ok: true, json: async () => claims }) });
+  assert.deepEqual(await verify(valid), valid);
+  for (const change of [{ aud: 'other-client' }, { iss: 'https://invalid.example' }, { exp: 1 }, { email_verified: 'false' }, { sub: '' }]) {
+    assert.equal(await verify({ ...valid, ...change }), null);
+  }
+  assert.equal(await verifyGoogleIdToken('bad', { clientId: 'test-client', fetchImpl: async () => ({ ok: false }) }), null);
+});

@@ -295,3 +295,6 @@
   .account-left { padding: 120px 24px 60px; }
   .account-card { max-width: 360px; }
 }
+
+.account-google-host { width: 100%; min-height: 44px; }
+.account-google-host.is-busy { pointer-events: none; opacity: .65; }

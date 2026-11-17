@@ -314,3 +314,5 @@ It checks trip CRUD/ownership, image byte retrieval, settings updates, and persi
 after disconnect/reconnect. It drops only its verification collections afterward;
 it never edits the real trips, images, settings, or credentials. The database user
 needs read/write, index-creation, and collection-removal permissions.
+
+Google local setup: set `GOOGLE_CLIENT_ID` in `backend/.env` and the same public ID as `VITE_GOOGLE_CLIENT_ID` in `frontend/.env.local`. Never put the client secret in a Vite variable. Restart Vite after changing frontend environment variables. Add the frontend origin (for example `http://localhost:5173`) to the OAuth web client authorized JavaScript origins in Google Cloud. The account screen uses the Google-rendered sign-in button; its credential is verified by the backend before a session is created.
