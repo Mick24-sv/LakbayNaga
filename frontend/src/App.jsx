@@ -1,3 +1,4 @@
+import AboutPage from './pages/about/AboutPage.jsx';
 import { useEffect, useRef, useState } from 'react';
 import HomePage from './pages/home/HomePage.jsx';
 import AttractionsPage from './pages/attractions/AttractionsPage.jsx';
@@ -17,7 +18,7 @@ function currentPage() {
   if (page.startsWith('reset-password')) return 'reset-password';
   const allowedPages = [
     'home', 'explore', 'planner', 'login', 'register',
-    'trips', 'profile', 'admin',
+    'trips', 'profile', 'admin', 'about',
   ];
 
   if (page.startsWith('place/')) return page;
@@ -135,6 +136,8 @@ export default function App() {
     );
   } else if (page === 'explore') {
     content = <AttractionsPage key={page} />;
+  } else if (page === 'about') {
+    content = <AboutPage />;
   } else if (page === 'planner') {
     content = <PlannerPage onNeedLogin={() => { window.location.hash = 'login'; }} />;
   } else if (page === 'login' || page === 'register' || page === 'reset-password') {
@@ -193,6 +196,10 @@ export default function App() {
 
             <a href="#planner" aria-current={page === 'planner' ? 'page' : undefined}>
               Plan a trip
+            </a>
+
+            <a href="#about" aria-current={page === 'about' ? 'page' : undefined}>
+              About us
             </a>
 
             {checkingSession ? (
@@ -270,7 +277,7 @@ export default function App() {
       )}
 
       {content}
-      {(['home', 'explore', 'planner', 'trips'].includes(page) || page.startsWith('place/')) && (
+      {(['home', 'explore', 'planner', 'trips', 'about'].includes(page) || page.startsWith('place/')) && (
         <footer className="site-footer">
           <div className="site-footer-inner">
             <section>
@@ -282,6 +289,7 @@ export default function App() {
               <a href="#explore">All attractions</a>
               <a href="#planner">Itinerary planner</a>
               <a href="#trips">Saved itineraries</a>
+              <a href="#about" aria-current={page === 'about' ? 'page' : undefined}>About us</a>
             </nav>
             <section>
               <h2>City Tourism Office</h2>
