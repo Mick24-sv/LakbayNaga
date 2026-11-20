@@ -1,3 +1,4 @@
+import AccountDropdown from '../../components/navigation/AccountDropdown.jsx';
 import { useEffect, useRef, useState } from 'react';
 import RouteMap from '../../components/maps/RouteMap.jsx';
 import SiteImages from './SiteImages.jsx';
@@ -251,33 +252,16 @@ export default function Admin({ user, checkingSession, onChanged, onLogout, site
             {menuOpen ? 'Close menu' : 'Menu'}
           </button>
 
-          <span className="admin-topbar-label">Admin workspace</span>
+          <span className="admin-topbar-label">{edit ? (edit.id ? 'Edit attraction' : 'Add attraction') : NAV.find(([key]) => key === section)?.[1] || 'Dashboard'}</span>
 
           <div className="admin-topbar-actions">
             <a href="#home">View website &#8599;</a>
 
-            <a className="admin-account" href="#profile" aria-label={'Open profile for ' + (user.firstName || 'Administrator')}>
-              <span className="admin-avatar" aria-hidden="true">
-                {(user.firstName || 'A').slice(0, 1).toUpperCase()}
-              </span>
-              <span>
-                {user.firstName || 'Administrator'}
-                <small>Administrator</small>
-              </span>
-            </a>
-
-            <button
-              type="button"
-              className="text-button"
-              disabled={busy}
-              onClick={async () => {
-                setError('');
-                try { await onLogout?.(); }
-                catch (err) { setError(err.message); }
-              }}
-            >
-              Log out
-            </button>
+            <AccountDropdown user={user} currentPage={section + (edit ? '-editor' : '')} disabled={busy} onLogout={async () => {
+              setError('');
+              try { await onLogout?.(); }
+              catch (err) { setError(err.message); throw err; }
+            }} />
           </div>
         </div>
 

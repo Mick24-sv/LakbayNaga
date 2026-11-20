@@ -1739,3 +1739,6 @@
 .attraction-gallery-empty { display: grid; place-items: center; min-height: 84px; margin-bottom: 10px; border: 1px dashed #d6dee8; border-radius: 7px; background: #f5f7fa; color: #8b98a9; font-size: 11px; }
 .attraction-credit-label { display: block; margin-top: 14px!important; font-size: 11px!important; }
 .attraction-credit-label input { width: 100%; margin-top: 6px; }
+
+.admin-topbar-label { color: #344f6d; font-weight: 600; }
+@media (max-width: 700px) { .admin-topbar { flex-wrap: wrap; } .admin-topbar-actions { margin-left: auto; } }

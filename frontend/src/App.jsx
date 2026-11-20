@@ -1,3 +1,4 @@
+import AccountDropdown from './components/navigation/AccountDropdown.jsx';
 import AboutPage from './pages/about/AboutPage.jsx';
 import { useEffect, useRef, useState } from 'react';
 import HomePage from './pages/home/HomePage.jsx';
@@ -220,33 +221,11 @@ export default function App() {
                     href="#admin"
                     aria-current={page === 'admin' ? 'page' : undefined}
                   >
-                    Admin
+                    Dashboard
                   </a>
                 )}
 
-                <a
-                  className="site-account-link"
-                  href="#profile"
-                  aria-label={'Open profile for ' + (user.firstName || 'your account')}
-                  aria-current={page === 'profile' ? 'page' : undefined}
-                >
-                  <span className="site-account-avatar" aria-hidden="true">
-                    {(user.firstName || 'U').slice(0, 1).toUpperCase()}
-                  </span>
-                  <span className="site-account-copy">
-                    <span className="site-account-display-name">{user.firstName || 'My account'}</span>
-                    <small>{user.role === 'admin' ? 'Administrator' : 'Tourist'}</small>
-                  </span>
-                </a>
-
-                <button
-                  type="button"
-                  className="site-logout"
-                  disabled={loggingOut}
-                  onClick={logout}
-                >
-                  {loggingOut ? 'Logging out...' : 'Log out'}
-                </button>
+                <AccountDropdown user={user} currentPage={page} onLogout={logout} disabled={loggingOut} />
               </>
             ) : (
               <>
