@@ -29,6 +29,7 @@ export default function PlannerPage({ onNeedLogin }) {
     error,
     savedTrip,
     acceptSavedTrip,
+    removeStop,
   } = usePlannerForm();
 
   useEffect(() => {
@@ -287,6 +288,7 @@ export default function PlannerPage({ onNeedLogin }) {
             <ItineraryResults
               key={JSON.stringify(result)}
               result={result}
+              onRemoveStop={removeStop}
               saveItinerary={saveItinerary}
               tripName={tripName}
               setTripName={name => { setTripName(name); setSaveMessage(''); setSaveError(''); }}
@@ -329,7 +331,7 @@ function TripPreview({ days, people, budget }) {
 
 // ── Results panel (after generation) ─────────────────────────────────────────
 
-function ItineraryResults({ result, saveItinerary, tripName, setTripName, saveBusy, savedTrip, saveMessage, saveError }) {
+function ItineraryResults({ result, onRemoveStop, saveItinerary, tripName, setTripName, saveBusy, savedTrip, saveMessage, saveError }) {
   const [activeDay, setActiveDay] = useState(1);
 
   const { days, totals, notice, settings } = result;
@@ -397,6 +399,7 @@ function ItineraryResults({ result, saveItinerary, tripName, setTripName, saveBu
               key={stop.id + '-' + index}
               stop={stop}
               index={index}
+              onRemove={() => onRemoveStop(stop.id)}
             />
           ))}
         </ol>
@@ -462,7 +465,7 @@ function ItineraryResults({ result, saveItinerary, tripName, setTripName, saveBu
 
 // ── Stop row ──────────────────────────────────────────────────────────────────
 
-function StopRow({ stop, index }) {
+function StopRow({ stop, index, onRemove }) {
   const startTime = minutesToTime(stop.startMinutes);
 
   return (
@@ -477,6 +480,14 @@ function StopRow({ stop, index }) {
           <span className="planner-stop-area">{stop.area}</span>
         )}
       </div>
+      <button
+        className="planner-stop-remove"
+        type="button"
+        aria-label={`Remove ${stop.name} from itinerary`}
+        onClick={onRemove}
+      >
+        Remove
+      </button>
     </li>
   );
 }

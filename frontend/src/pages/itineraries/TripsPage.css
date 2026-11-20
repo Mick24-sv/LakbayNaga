@@ -44,3 +44,17 @@
 .trips-card-actions button:disabled { opacity: .65; cursor: wait; }
 
 .trips-card-content h2, .trips-card-content p { overflow-wrap: anywhere; }
+
+.trips-dialog-backdrop { position: fixed; z-index: 1000; inset: 0; display: grid; place-items: center; padding: 20px; background: rgb(19 31 46 / 58%); }
+.trips-delete-dialog { width: min(100%, 440px); padding: 30px; border: 1px solid #e1e8f0; border-radius: 14px; background: #fff; box-shadow: 0 24px 70px rgb(13 28 46 / 28%); color: #1e2a3c; }
+.trips-dialog-mark { display: grid; width: 42px; height: 42px; margin-bottom: 16px; place-items: center; border-radius: 50%; background: #fff1f0; color: #c7353d; font-size: 21px; font-weight: 700; }
+.trips-delete-dialog h2 { margin: 0 0 8px; font-size: 21px; line-height: 28px; }
+.trips-delete-dialog p { margin: 0; color: #66768a; font-size: 14px; line-height: 22px; overflow-wrap: anywhere; }
+.trips-delete-dialog strong { color: #1e2a3c; }
+.trips-dialog-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 26px; }
+.trips-dialog-actions button { min-height: 42px; padding: 0 16px; border-radius: 7px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.trips-dialog-cancel { border: 1px solid #d6e0eb; background: #fff; color: #344c63; }
+.trips-dialog-confirm { border: 1px solid #c52f38; background: #c7353d; color: #fff; }
+.trips-dialog-actions button:disabled { opacity: .65; cursor: wait; }
+.trips-dialog-actions button:focus-visible { outline: 3px solid #76a8ff; outline-offset: 3px; }
+@media (max-width: 480px) { .trips-delete-dialog { padding: 24px; } .trips-dialog-actions { flex-direction: column-reverse; } .trips-dialog-actions button { width: 100%; } }

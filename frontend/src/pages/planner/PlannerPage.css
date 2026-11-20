@@ -401,6 +401,30 @@
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  flex: 1;
+}
+
+.planner-stop-remove {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border: 1px solid #d7e2ec;
+  border-radius: 6px;
+  background: #fff;
+  color: #53677b;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.planner-stop-remove:hover {
+  border-color: #d4464a;
+  background: #fff5f5;
+  color: #a82e32;
+}
+
+.planner-stop-remove:focus-visible {
+  outline: 3px solid #5bade7;
+  outline-offset: 2px;
 }
 
 .planner-stop-time {

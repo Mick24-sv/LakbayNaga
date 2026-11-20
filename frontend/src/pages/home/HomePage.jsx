@@ -102,13 +102,13 @@ export default function HomePage({ siteImages = {} }) {
               <h2 id="places-title">Places worth the trip</h2>
             </div>
 
-            {!showAll && places.length > 3 && (
+            {places.length > 3 && (
               <button
                 type="button"
                 className="home-secondary-button"
-                onClick={() => setShowAll(true)}
+                onClick={() => setShowAll(current => !current)}
               >
-                Show all places
+                {showAll ? 'Show fewer places' : 'Show all places'}
               </button>
             )}
           </div>
@@ -148,7 +148,12 @@ export default function HomePage({ siteImages = {} }) {
             <>
               <div className="home-place-grid">
                 {visiblePlaces.map(place => (
-                  <article className="home-place-card" key={place.id}>
+                  <a
+                    className="home-place-card"
+                    key={place.id}
+                    href={'#place/' + encodeURIComponent(place.id)}
+                    aria-label={`View ${place.name}`}
+                  >
                     {place.imageUrl && (
                       <img
                         className="home-place-card-photo"
@@ -165,7 +170,7 @@ export default function HomePage({ siteImages = {} }) {
                     </p>
                     <p>{place.description}</p>
 
-                  </article>
+                  </a>
                 ))}
               </div>
 
