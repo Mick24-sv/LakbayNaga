@@ -316,3 +316,7 @@ it never edits the real trips, images, settings, or credentials. The database us
 needs read/write, index-creation, and collection-removal permissions.
 
 Google local setup: set `GOOGLE_CLIENT_ID` in `backend/.env` and the same public ID as `VITE_GOOGLE_CLIENT_ID` in `frontend/.env.local`. Never put the client secret in a Vite variable. Restart Vite after changing frontend environment variables. Add the frontend origin (for example `http://localhost:5173`) to the OAuth web client authorized JavaScript origins in Google Cloud. The account screen uses the Google-rendered sign-in button; its credential is verified by the backend before a session is created.
+
+## LNK-SEC-01: API authorization and input-validation audit
+
+Run `node --test backend/test/integration/security.test.js` from the project root. These tests use isolated memory stores and do not write to MongoDB. They cover guest/forged-session rejection (401), ordinary-user rejection on every admin route (403), immediate role-change enforcement, saved-trip ownership (including administrator accounts), forged ownership fields, structured database-style input, and rejected requests leaving records unchanged. Search is limited to 200 characters, category to 40 characters, and planner preferences to 32 entries. This ticket verifies API authorization and validation; authentication rate limits, database configuration, and upload hardening remain separate security tickets.

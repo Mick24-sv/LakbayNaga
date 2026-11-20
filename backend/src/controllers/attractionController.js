@@ -14,6 +14,10 @@ export function createAttractionController(attractionRepository) {
       }
 
 
+      if (q.length > 200 || category.length > 40) {
+        return res.status(400).json({ error: 'Search must be at most 200 characters and category at most 40.' });
+      }
+
       const places = await attractionRepository.all();
 
 
