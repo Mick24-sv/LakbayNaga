@@ -107,6 +107,60 @@ export function minutesToTime(minutes, startHour = 9) {
   return `${hour}:${String(m).padStart(2, '0')} ${period}`;
 }
 
+function distanceBetween(a, b) {
+  if (![a.lat, a.lng, b.lat, b.lng].every(Number.isFinite)) return 0;
+  const radians = value => value * Math.PI / 180;
+  const dlat = radians(b.lat - a.lat);
+  const dlng = radians(b.lng - a.lng);
+  const h = Math.sin(dlat / 2) ** 2 + Math.cos(radians(a.lat)) * Math.cos(radians(b.lat)) * Math.sin(dlng / 2) ** 2;
+  return 6371 * 2 * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+function withoutStop(plan, stopId) {
+  const transfer = { walk: 45, public: 30, private: 20 }[plan.settings.transport] ?? 30;
+  const fare = { walk: 0, public: 50, private: 100 }[plan.settings.transport] ?? 50;
+  const people = plan.settings.people;
+  let minutes = 0;
+  let distanceKm = 0;
+  const days = plan.days.map(day => {
+    let elapsed = 0;
+    let dayDistance = 0;
+    const stops = day.stops.filter(stop => stop.id !== stopId).map((stop, index, list) => {
+      if (index) {
+        elapsed += transfer;
+        dayDistance += distanceBetween(list[index - 1], stop);
+      }
+      const next = { ...stop, startMinutes: elapsed };
+      elapsed += stop.duration;
+      return next;
+    });
+    const dayMinutes = stops.reduce((sum, stop) => sum + stop.duration, 0) + Math.max(0, stops.length - 1) * transfer;
+    minutes += dayMinutes;
+    distanceKm += dayDistance;
+    return { ...day, stops, minutes: dayMinutes, distanceKm: Math.round(dayDistance * 10) / 10 };
+  });
+  const stops = days.flatMap(day => day.stops);
+  const excludedPlaceIds = [...new Set([...(plan.settings.excludedPlaceIds || []), stopId])];
+  const admissions = stops.reduce((sum, stop) => sum + Math.round(stop.cost * 100) * people, 0) / 100;
+  const transportAllowance = stops.length * fare * people;
+  const total = admissions + transportAllowance + plan.totals.food + plan.totals.lodging;
+  return {
+    ...plan,
+    settings: { ...plan.settings, excludedPlaceIds },
+    days,
+    stops,
+    totals: {
+      ...plan.totals,
+      admissions,
+      transportAllowance,
+      total,
+      remaining: plan.settings.budget - total,
+      minutes,
+      distanceKm: Math.round(distanceKm * 10) / 10,
+    },
+  };
+}
+
 export { BUDGET_MAX, BUDGET_SLIDER_MAX };
 
 export function usePlannerForm() {
@@ -215,5 +269,9 @@ export function usePlannerForm() {
     setResult(trip.plan);
   }
 
-  return { values, update, togglePreference, generate, result, busy, error, savedTrip, acceptSavedTrip };
+  function removeStop(stopId) {
+    setResult(current => current ? withoutStop(current, stopId) : current);
+  }
+
+  return { values, update, togglePreference, generate, result, busy, error, savedTrip, acceptSavedTrip, removeStop };
 }

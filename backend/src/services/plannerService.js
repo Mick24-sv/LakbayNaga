@@ -32,6 +32,11 @@ export function normalizeInput(input = {}) {
   if (!Array.isArray(preferences) || preferences.length > 32 || preferences.some(value => !categories.has(value))) {
     throw new InputError('Select interests from the available attraction categories.');
   }
+  const excludedPlaceIds = input.excludedPlaceIds ?? [];
+  if (!Array.isArray(excludedPlaceIds) || excludedPlaceIds.length > 100 ||
+      excludedPlaceIds.some(value => typeof value !== 'string' || value.length > 200)) {
+    throw new InputError('Check the excluded attractions list.');
+  }
   const startDate = input.startDate ?? '';
   if (typeof startDate !== 'string') throw new InputError('Choose a valid start date.');
   if (startDate) {
@@ -48,7 +53,8 @@ export function normalizeInput(input = {}) {
     throw new InputError('Select a valid pace and transport option.');
   }
   return { budget, hours, people, days, startDate, pace, transport,
-    foodPerPersonDay, lodgingPerNight, preferences: [...new Set(preferences)] };
+    foodPerPersonDay, lodgingPerNight, preferences: [...new Set(preferences)],
+    excludedPlaceIds: [...new Set(excludedPlaceIds)] };
 }
 
 export function distanceKm(a, b) {
@@ -96,6 +102,7 @@ export function planItinerary(input, attractions) {
   let pool = [...new Map(attractions.filter(place =>
     place && typeof place.id === 'string' && place.id &&
     place.published === true && !place.archived &&
+    !settings.excludedPlaceIds.includes(place.id) &&
     Number.isFinite(place.cost) && place.cost >= 0 &&
     Number.isFinite(place.duration) && place.duration > 0 &&
     (!preferences.length || preferences.includes(place.category))
