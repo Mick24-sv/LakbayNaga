@@ -1,3 +1,4 @@
+import AttractionStoryCard from '../../components/attractions/AttractionStoryCard.jsx';
 import { useState } from 'react';
 import { useHomeAttractions } from './homeLogic.js';
 import HomeHero from './HomeHero.jsx';
@@ -55,7 +56,7 @@ export default function HomePage({ siteImages = {} }) {
   }
 
   return (
-    <div className="home-page">
+    <div className="home-page" data-navigation-loading={loading}>
       <HomeHero siteImages={siteImages} query={query} onQueryChange={setQuery} onSubmit={submitSearch} />
 
       <div className="home-container home-content">
@@ -148,29 +149,7 @@ export default function HomePage({ siteImages = {} }) {
             <>
               <div className="home-place-grid">
                 {visiblePlaces.map(place => (
-                  <a
-                    className="home-place-card"
-                    key={place.id}
-                    href={'#place/' + encodeURIComponent(place.id)}
-                    aria-label={`View ${place.name}`}
-                  >
-                    {place.imageUrl && (
-                      <img
-                        className="home-place-card-photo"
-                        src={place.imageUrl}
-                        alt={place.name}
-                        loading="lazy"
-                      />
-                    )}
-                    <span className="home-category">{place.category}</span>
-
-                    <h3>{place.name}</h3>
-                    <p className="home-location">
-                      {place.area || 'Naga City'}
-                    </p>
-                    <p>{place.description}</p>
-
-                  </a>
+                  <AttractionStoryCard key={place.id} place={place} />
                 ))}
               </div>
 

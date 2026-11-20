@@ -1,3 +1,4 @@
+import ConfirmDialog from '../../components/dialogs/ConfirmDialog.jsx';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { formatPHP } from '../planner/plannerLogic.js';
 import './TripsPage.css';
@@ -52,7 +53,7 @@ export default function TripsPage() {
   const [message, setMessage] = useState('');
   const mutationLock = useRef(false);
   const loadingRequest = useRef(null);
-  const cancelDeleteRef = useRef(null);
+
 
   const loadTrips = useCallback(async () => {
     loadingRequest.current?.abort();
@@ -102,15 +103,7 @@ export default function TripsPage() {
     }
   }
 
-  useEffect(() => {
-    if (!deleteTarget) return undefined;
-    cancelDeleteRef.current?.focus();
-    function handleKeyDown(event) {
-      if (event.key === 'Escape' && !pendingDelete) setDeleteTarget(null);
-    }
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [deleteTarget, pendingDelete]);
+
 
   async function openTrip(trip) {
     if (mutationLock.current || loading) return;
@@ -179,7 +172,7 @@ export default function TripsPage() {
                       <p className="trips-card-expenses">Est. expenses {formatPHP(plan.totals?.total)}</p>
                       <div className="trips-card-actions">
                         <button type="button" className="trips-open-btn" disabled={Boolean(pendingDelete || openingId)} onClick={() => openTrip(trip)}>{openingId === trip.id ? 'Opening...' : 'Open / edit'}</button>
-                        <button type="button" className="trips-delete-btn" disabled={Boolean(pendingDelete || openingId)} onClick={() => setDeleteTarget(trip)}>
+                        <button type="button" className="trips-delete-btn" disabled={Boolean(pendingDelete || openingId)} onClick={() => { setError(''); setDeleteTarget(trip); }}>
                           {pendingDelete === trip.id ? 'Deleting…' : 'Delete'}
                         </button>
                       </div>
@@ -191,31 +184,17 @@ export default function TripsPage() {
           </>
         )}
       </div>
-      {deleteTarget && (
-        <div className="trips-dialog-backdrop">
-          <section
-            className="trips-delete-dialog"
-            role="alertdialog"
-            aria-modal="true"
-            aria-labelledby="trips-delete-title"
-            aria-describedby="trips-delete-description"
-          >
-            <span className="trips-dialog-mark" aria-hidden="true">!</span>
-            <h2 id="trips-delete-title">Delete this itinerary?</h2>
-            <p id="trips-delete-description">
-              Delete <strong>“{deleteTarget.name}”</strong>? This action cannot be undone.
-            </p>
-            <div className="trips-dialog-actions">
-              <button ref={cancelDeleteRef} type="button" className="trips-dialog-cancel" disabled={Boolean(pendingDelete)} onClick={() => setDeleteTarget(null)}>
-                Cancel
-              </button>
-              <button type="button" className="trips-dialog-confirm" disabled={Boolean(pendingDelete)} onClick={deleteTrip}>
-                {pendingDelete ? 'Deleting…' : 'Delete itinerary'}
-              </button>
-            </div>
-          </section>
-        </div>
-      )}
+      {deleteTarget && <ConfirmDialog
+        title="Delete this itinerary?"
+        description="This saved itinerary will be permanently deleted. This action cannot be undone."
+        name={deleteTarget.name}
+        confirmLabel="Delete itinerary"
+        busyLabel="Deleting..."
+        busy={Boolean(pendingDelete)}
+        error={error}
+        onCancel={() => { if (!mutationLock.current) setDeleteTarget(null); }}
+        onConfirm={deleteTrip}
+      />}
     </main>
   );
 }

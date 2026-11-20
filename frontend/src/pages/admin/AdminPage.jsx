@@ -1,3 +1,4 @@
+import ConfirmDialog from '../../components/dialogs/ConfirmDialog.jsx';
 import AccountDropdown from '../../components/navigation/AccountDropdown.jsx';
 import { useEffect, useRef, useState } from 'react';
 import RouteMap from '../../components/maps/RouteMap.jsx';
@@ -52,6 +53,7 @@ const NAV = [
 /* ── component ───────────────────────────────────────────── */
 export default function Admin({ user, checkingSession, onChanged, onLogout, siteImages = {} }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [archiveTarget, setArchiveTarget] = useState(null);
   const [section,  setSection]  = useState('dashboard');
   const [places,   setPlaces]   = useState([]);
   const [edit,     setEdit]     = useState(null);
@@ -166,7 +168,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout, site
 
   async function archive(a) {
     if (saveLock.current) return;
-    if (!a.archived && !window.confirm('Archive this attraction? It will disappear from public browsing.')) return;
+    if (!a.archived) { setArchiveTarget(a); return; }
     await mutate(
       '/admin/attractions/' + encodeURIComponent(a.id) + '/archive',
       { archived: !a.archived },
@@ -205,6 +207,20 @@ export default function Admin({ user, checkingSession, onChanged, onLogout, site
   /* ── render ───────────────────────────────────────────── */
   return (
     <div className={'admin-shell admin-workspace' + (menuOpen ? ' menu-open' : '')}>
+      {archiveTarget && <ConfirmDialog
+        title="Archive this attraction?"
+        description="It will be hidden from public browsing and trip planning. You can restore it later from the archived attractions."
+        name={archiveTarget.name}
+        confirmLabel="Archive attraction"
+        busyLabel="Archiving..."
+        busy={busy}
+        onCancel={() => { if (!saveLock.current) setArchiveTarget(null); }}
+        onConfirm={async () => {
+          if (saveLock.current) return;
+          await mutate('/admin/attractions/' + encodeURIComponent(archiveTarget.id) + '/archive', { archived: true }, 'PATCH', 'Attraction archived.');
+          setArchiveTarget(null);
+        }}
+      />}
 
       {/* ── sidebar ── */}
       <aside className="admin-sidebar" id="admin-navigation">

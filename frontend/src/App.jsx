@@ -1,3 +1,4 @@
+import { useNavigationTransitions } from './components/navigation/useNavigationTransitions.js';
 import AccountDropdown from './components/navigation/AccountDropdown.jsx';
 import AboutPage from './pages/about/AboutPage.jsx';
 import { useEffect, useRef, useState } from 'react';
@@ -37,21 +38,9 @@ export default function App() {
 
   // Prevent an older session check from overwriting a newer login.
   const sessionVersion = useRef(0);
+  const returnAfterLogin = useRef(null);
 
-  useEffect(() => {
-    function navigate() {
-      setPage(currentPage());
-      setLogoutError('');
-      window.scrollTo(0, 0);
-    }
-
-    window.addEventListener('hashchange', navigate);
-
-    return () => {
-      window.removeEventListener('hashchange', navigate);
-    };
-  }, []);
-
+  useNavigationTransitions(currentPage, setPage, setLogoutError);
   useEffect(() => {
     let active = true;
     const apply = data => {
@@ -96,7 +85,8 @@ export default function App() {
     setUser(account);
     setCheckingSession(false);
     setLogoutError('');
-    window.location.hash = hasPendingForm() ? 'planner' : 'home';
+    window.location.hash = returnAfterLogin.current || (hasPendingForm() ? 'planner' : 'home');
+    returnAfterLogin.current = null;
   }
 
   async function logout() {
@@ -133,6 +123,9 @@ export default function App() {
       <AttractionDetailsPage
         key={page}
         attractionId={page.slice('place/'.length)}
+        user={user}
+        checkingSession={checkingSession}
+        onNeedLogin={() => { returnAfterLogin.current = page; window.location.hash = 'login'; }}
       />
     );
   } else if (page === 'explore') {
@@ -255,7 +248,7 @@ export default function App() {
         </p>
       )}
 
-      {content}
+      <div className="site-page-content">{content}</div>
       {(['home', 'explore', 'planner', 'trips', 'about'].includes(page) || page.startsWith('place/')) && (
         <footer className="site-footer">
           <div className="site-footer-inner">

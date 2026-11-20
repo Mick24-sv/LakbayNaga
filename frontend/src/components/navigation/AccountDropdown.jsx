@@ -1,4 +1,4 @@
-﻿import { useEffect, useId, useRef, useState } from 'react';
+﻿import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import './AccountDropdown.css';
 
 export default function AccountDropdown({ user, onLogout, disabled = false, currentPage }) {
@@ -9,6 +9,20 @@ export default function AccountDropdown({ user, onLogout, disabled = false, curr
   const trigger = useRef(null);
   const lock = useRef(false);
   const panelId = useId();
+  useLayoutEffect(() => {
+    if (!open) return;
+    function positionPanel() {
+      const panel = root.current?.querySelector('.account-dropdown-panel');
+      if (!panel) return;
+      const anchor = root.current.getBoundingClientRect();
+      const left = Math.max(12, Math.min(anchor.right - panel.offsetWidth, window.innerWidth - panel.offsetWidth - 12));
+      panel.style.left = (left - anchor.left) + 'px';
+      panel.style.right = 'auto';
+    }
+    positionPanel();
+    window.addEventListener('resize', positionPanel);
+    return () => window.removeEventListener('resize', positionPanel);
+  }, [open]);
   useEffect(() => {
     if (!open) return;
     function outside(event) { if (!root.current?.contains(event.target)) setOpen(false); }

@@ -1,3 +1,4 @@
+import AttractionStoryCard from '../../components/attractions/AttractionStoryCard.jsx';
 import { useState } from 'react';
 import {
   categories,
@@ -33,7 +34,7 @@ export default function AttractionsPage() {
 
 
   return (
-    <main className="attractions-page">
+    <main className="attractions-page" data-navigation-loading={loading}>
       <header className="attractions-heading">
         <span>NAGA CITY, CAMARINES SUR</span>
         <h1>Explore Naga</h1>
@@ -151,42 +152,7 @@ export default function AttractionsPage() {
         ) : (
           <div className="attractions-grid">
             {places.map(place => (
-              <article className="attraction-card" key={place.id}>
-                {place.imageUrl && (
-                  <img
-                    className="attraction-card-photo"
-                    src={place.imageUrl}
-                    alt={place.name}
-                    loading="lazy"
-                  />
-                )}
-                <span className="attraction-category">
-                  {place.category}
-                </span>
-
-
-                <h3>{place.name}</h3>
-
-
-                <p className="attraction-location">
-                  <Pin />
-                  {place.area || 'Naga City'}
-                </p>
-
-
-                <p className="attraction-description">
-                  {place.description}
-                </p>
-
-
-                <a
-                  className="attractions-secondary attraction-details-link"
-                  href={'#place/' + encodeURIComponent(place.id)}
-                >
-                  View place
-                  <span aria-hidden="true">&#8594;</span>
-                </a>
-              </article>
+              <AttractionStoryCard key={place.id} place={place} />
             ))}
           </div>
         )}
@@ -197,20 +163,4 @@ export default function AttractionsPage() {
   );
 }
 
-
-function Pin() {
-  return (
-    <svg
-      aria-hidden="true"
-      width="17"
-      height="17"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-    >
-      <path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 0 1 14 0Z" />
-      <circle cx="12" cy="10" r="2.5" />
-    </svg>
-  );
-}
+
