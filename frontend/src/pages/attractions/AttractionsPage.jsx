@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import {
   categories,
-  formatFee,
   useAttractions
 } from './attractionsLogic.js';
 import './AttractionsPage.css';
@@ -153,6 +152,14 @@ export default function AttractionsPage() {
           <div className="attractions-grid">
             {places.map(place => (
               <article className="attraction-card" key={place.id}>
+                {place.imageUrl && (
+                  <img
+                    className="attraction-card-photo"
+                    src={place.imageUrl}
+                    alt={place.name}
+                    loading="lazy"
+                  />
+                )}
                 <span className="attraction-category">
                   {place.category}
                 </span>
@@ -172,44 +179,12 @@ export default function AttractionsPage() {
                 </p>
 
 
-                <dl className="attraction-facts">
-                  <div>
-                    <dt>Estimated entrance fee</dt>
-                    <dd>{formatFee(place.cost)}</dd>
-                  </div>
-
-
-                  <div>
-                    <dt>Visit duration</dt>
-                    <dd>
-                      {place.duration
-                        ? place.duration + ' min'
-                        : 'Varies'}
-                    </dd>
-                  </div>
-                </dl>
-
                 <a
                   className="attractions-secondary attraction-details-link"
                   href={'#place/' + encodeURIComponent(place.id)}
                 >
                   View place
                   <span aria-hidden="true">&#8594;</span>
-                </a>
-                
-                <a
-                  className="attractions-secondary"
-                  href={
-                    'https://www.google.com/maps/search/?api=1&query=' +
-                    encodeURIComponent(
-                      place.name + ' Naga City Philippines'
-                    )
-                  }
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Find on map
-                  <span aria-hidden="true">&#8599;</span>
                 </a>
               </article>
             ))}
@@ -218,10 +193,6 @@ export default function AttractionsPage() {
       </section>
 
 
-      <p className="attractions-note">
-        Fees and durations are estimates. Confirm current visitor
-        information directly with the attraction.
-      </p>
     </main>
   );
 }

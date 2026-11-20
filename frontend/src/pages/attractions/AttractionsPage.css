@@ -171,6 +171,7 @@
 .attractions-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
   gap: 20px;
 }
 
@@ -179,11 +180,21 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-  padding: 24px;
+  padding: 12px;
   border: 1px solid #e0e7ef;
   border-radius: 12px;
-  background: white;
+  background: #f6f7f8;
   box-shadow: 0 2px 8px #15283e05;
+}
+
+.attraction-card-photo {
+  display: block;
+  width: calc(100% + 16px);
+  aspect-ratio: 2.35 / 1;
+  margin: -8px -8px 8px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: #eaf0f5;
 }
 
 
@@ -199,7 +210,7 @@
 
 
 .attraction-card h3 {
-  margin: 16px 0 10px;
+  margin: 8px 0 6px;
   font-size: 19px;
   line-height: 27px;
 }
@@ -209,7 +220,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 14px;
+  margin-bottom: 8px;
   color: #61768b;
   font-size: 12px;
   line-height: 20px;
@@ -222,6 +233,7 @@
 
 
 .attraction-description {
+  margin-bottom: 0;
   color: #52677c;
   font-size: 14px;
   line-height: 23px;
@@ -232,8 +244,8 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  padding-top: 16px;
-  margin: 24px 0 18px;
+  padding-top: 10px;
+  margin: 12px 0 10px;
   border-top: 1px solid #e7edf4;
 }
 

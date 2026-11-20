@@ -151,44 +151,49 @@
     position: relative;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 16px;
+    gap: 12px;
     margin-top: -28px;
     margin-bottom: 40px;
 }
 
 .home-benefits article {
     display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 20px;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 9px 11px;
     border: 1px solid #e3e8ef;
-    border-radius: 10px;
+    border-radius: 8px;
     background: #fff;
-    box-shadow: 0 3px 12px #15283e08;
+    box-shadow: 0 2px 7px #15283e0a;
 }
 
-.home-benefit-number {
+.home-benefit-icon {
     display: grid;
     flex-shrink: 0;
     place-items: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    background: #edf5fc;
-    color: #0075c9;
+    width: 21px;
+    height: 21px;
+    border-radius: 5px;
+    background: #0788ce;
+    color: #fff;
+    font-size: 12px;
     font-weight: 700;
 }
 
+.home-benefit-icon-2 { background: #61a64b; }
+.home-benefit-icon-3 { background: #d4464a; }
+
 .home-benefits h2 {
-    font-size: 14px;
-    line-height: 22px;
+    font-size: 11px;
+    line-height: 15px;
 }
 
 .home-benefits p {
-    margin-top: 4px;
+    margin-top: 1px;
     color: #596b7d;
-    font-size: 12px;
-    line-height: 19px;
+    font-size: 9px;
+    line-height: 13px;
 }
 
 .home-interests {
@@ -256,6 +261,16 @@
     border: 1px solid #e3e8ef;
     border-radius: 12px;
     background: #f8fafc;
+}
+
+.home-place-card-photo {
+  display: block;
+  width: calc(100% + 44px);
+  aspect-ratio: 2.35 / 1;
+  margin: -22px -22px 8px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: #eaf0f5;
 }
 
 .home-category {
@@ -337,7 +352,7 @@
     white-space: nowrap;
 }
 
-@media (max-width: 850px) {
+@media (max-width: 650px) {
 
     .home-benefits,
     .home-place-grid {
