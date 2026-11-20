@@ -161,7 +161,7 @@ export default function App() {
   }
 
   return (
-    <>
+    <div className="site-shell">
         {!['admin', 'login', 'register', 'reset-password'].includes(page) && <header className="site-header">
         <div className="site-header-inner">
           <a className="site-brand" href="#home">
@@ -291,6 +291,6 @@ export default function App() {
           <div className="site-footer-stripe" aria-hidden="true"><span /><span /><span /><span /></div>
         </footer>
       )}
-    </>
+    </div>
   );
 }

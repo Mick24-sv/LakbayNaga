@@ -132,3 +132,8 @@
   .site-header nav a.site-account-link { padding: 6px 8px; }
   .site-account-display-name { max-width: 140px; }
 }
+
+/* Keep the footer at the viewport bottom when a page has little content. */
+.site-shell { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }
+.site-shell > * { flex-shrink: 0; }
+.site-shell > .site-footer { margin-top: auto; }

@@ -29,7 +29,7 @@ export function normalizeInput(input = {}) {
   const foodPerPersonDay = number(input.foodPerPersonDay ?? 0, 0, 5000, 'Check your food allowance.');
   const lodgingPerNight = number(input.lodgingPerNight ?? 0, 0, 100000, 'Check your accommodation allowance.');
   const preferences = input.preferences ?? [];
-  if (!Array.isArray(preferences) || preferences.some(value => !categories.has(value))) {
+  if (!Array.isArray(preferences) || preferences.length > 32 || preferences.some(value => !categories.has(value))) {
     throw new InputError('Select interests from the available attraction categories.');
   }
   const startDate = input.startDate ?? '';
