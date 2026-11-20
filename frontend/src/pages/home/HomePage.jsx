@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { formatFee, useHomeAttractions } from './homeLogic.js';
+import { useHomeAttractions } from './homeLogic.js';
 import HomeHero from './HomeHero.jsx';
 import './HomePage.css';
 
@@ -12,9 +12,9 @@ const interests = [
 ];
 
 const benefits = [
-  ['Discover places', 'Explore local heritage and city favorites.'],
-  ['Know the costs', 'Prepare with estimated entrance fees.'],
-  ['Plan your days', 'Find places that match your interests.']
+  ['Discover places', 'Heritage, faith, and everyday favorites.', '✦'],
+  ['Know the costs', 'Prepare for your day with estimates.', '₱'],
+  ['Plan your days', 'A day-by-day plan that fits your budget.', '▦']
 ];
 
 export default function HomePage({ siteImages = {} }) {
@@ -60,10 +60,10 @@ export default function HomePage({ siteImages = {} }) {
 
       <div className="home-container home-content">
         <section className="home-benefits" aria-label="Why explore Naga">
-          {benefits.map(([title, description], index) => (
+          {benefits.map(([title, description, icon], index) => (
             <article key={title}>
-              <span className="home-benefit-number" aria-hidden="true">
-                {index + 1}
+              <span className={`home-benefit-icon home-benefit-icon-${index + 1}`} aria-hidden="true">
+                {icon}
               </span>
 
               <div>
@@ -149,6 +149,14 @@ export default function HomePage({ siteImages = {} }) {
               <div className="home-place-grid">
                 {visiblePlaces.map(place => (
                   <article className="home-place-card" key={place.id}>
+                    {place.imageUrl && (
+                      <img
+                        className="home-place-card-photo"
+                        src={place.imageUrl}
+                        alt={place.name}
+                        loading="lazy"
+                      />
+                    )}
                     <span className="home-category">{place.category}</span>
 
                     <h3>{place.name}</h3>
@@ -157,22 +165,10 @@ export default function HomePage({ siteImages = {} }) {
                     </p>
                     <p>{place.description}</p>
 
-                    <div className="home-place-meta">
-                      <span>
-                        {place.duration
-                          ? place.duration + ' minute visit'
-                          : 'Visit duration varies'}
-                      </span>
-                      <strong>{formatFee(place.cost)}</strong>
-                    </div>
                   </article>
                 ))}
               </div>
 
-              <p className="home-fee-note">
-                Fees and visit durations are estimates. Confirm current
-                information with the attraction before visiting.
-              </p>
             </>
           )}
         </section>

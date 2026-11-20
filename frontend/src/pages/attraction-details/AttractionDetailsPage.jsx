@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import AttractionGallery from '../../components/media/AttractionGallery.jsx';
 import { formatFee } from '../attractions/attractionsLogic.js';
 import {
   attractionPhoto,
@@ -91,6 +92,11 @@ function PlaceContent({ place }) {
 
 
   const photo = attractionPhoto(place.imageUrl);
+  const photos = [...new Set([
+    photo,
+    ...(Array.isArray(place.galleryImages) ? place.galleryImages : [])
+      .map(attractionPhoto)
+  ].filter(Boolean))];
 
 
   const paragraphs =
@@ -190,11 +196,7 @@ function PlaceContent({ place }) {
 
       <div className="place-detail-grid">
         <section aria-labelledby="place-description-title">
-          {photo && (
-            <figure className="place-detail-photo">
-              <img src={photo} alt={place.name} />
-            </figure>
-          )}
+          <AttractionGallery photos={photos} name={place.name} />
 
 
           {photo && place.photoCredit && (
