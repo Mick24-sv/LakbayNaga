@@ -1,4 +1,5 @@
 import ConfirmDialog from '../../components/dialogs/ConfirmDialog.jsx';
+import { attractionPhoto } from '../../components/media/imageUrls.js';
 import { useState } from 'react';
 import ImageCropper from '../../components/media/ImageCropper.jsx';
 
@@ -8,6 +9,7 @@ export default function AttractionPhotos({ value, onChange, disabled, onError })
   const [uploading, setUploading] = useState(false);
   const [pendingSlot, setPendingSlot] = useState('cover');
   const gallery = value.galleryImages || [];
+  const coverPhoto = attractionPhoto(value.imageUrl);
 
   function choose(file, slot) {
     if (!file) return;
@@ -40,15 +42,15 @@ export default function AttractionPhotos({ value, onChange, disabled, onError })
   return <>
     <section className="panel attraction-photo-panel">
       <h3>Attraction photo</h3>
-      {value.imageUrl ? <img className="attraction-cover-preview" src={value.imageUrl} alt="Attraction cover preview" /> : <div className="attraction-cover-empty">No image selected</div>}
+      {coverPhoto ? <img className="attraction-cover-preview" src={coverPhoto} alt="Attraction cover preview" /> : <div className="attraction-cover-empty">{value.imageUrl ? 'Unsupported image URL blocked' : 'No image selected'}</div>}
       <label className="attraction-upload-label">Upload image<input type="file" accept="image/jpeg,image/png,image/webp" disabled={disabled || uploading} onChange={event => { choose(event.target.files?.[0], 'cover'); event.target.value = ''; }} /></label>
       <p className="small">Recommended: 1200 × 800 px landscape. JPEG, PNG, or WebP, up to 5 MB.</p>
-      {value.imageUrl && <div className="attraction-photo-actions"><button type="button" className="text-button image-crop-action" disabled={disabled || uploading} onClick={() => document.getElementById('replace-attraction-cover')?.click()}>Adjust crop</button><button type="button" className="text-button image-remove-action" disabled={disabled || uploading} onClick={() => setRemoveTarget({ slot: 'cover' })}>Remove image</button><input id="replace-attraction-cover" className="visually-hidden-file" type="file" accept="image/jpeg,image/png,image/webp" onChange={event => { choose(event.target.files?.[0], 'cover'); event.target.value = ''; }} /></div>}
+      {value.imageUrl && <div className="attraction-photo-actions">{coverPhoto && <button type="button" className="text-button image-crop-action" disabled={disabled || uploading} onClick={() => document.getElementById('replace-attraction-cover')?.click()}>Adjust crop</button>}<button type="button" className="text-button image-remove-action" disabled={disabled || uploading} onClick={() => setRemoveTarget({ slot: 'cover' })}>Remove image</button><input id="replace-attraction-cover" className="visually-hidden-file" type="file" accept="image/jpeg,image/png,image/webp" onChange={event => { choose(event.target.files?.[0], 'cover'); event.target.value = ''; }} /></div>}
 
       <div className="attraction-gallery-editor">
         <h3>Gallery photos</h3>
         <p className="small">Add up to 8 extra photos. Visitors can swipe through them on the attraction page.</p>
-        {gallery.length > 0 && <div className="attraction-gallery-thumbs">{gallery.map(url => <div key={url}><img src={url} alt="Gallery photo preview" /><button type="button" disabled={disabled || uploading} onClick={() => setRemoveTarget({ slot: 'gallery', url })}>Remove</button></div>)}</div>}
+        {gallery.length > 0 && <div className="attraction-gallery-thumbs">{gallery.map((url, index) => <div key={url + index}>{attractionPhoto(url) ? <img src={attractionPhoto(url)} alt="Gallery photo preview" /> : <span>Unsupported image URL blocked</span>}<button type="button" disabled={disabled || uploading} onClick={() => setRemoveTarget({ slot: 'gallery', url })}>Remove</button></div>)}</div>}
         <div className="attraction-gallery-upload">
           <div className="attraction-gallery-empty">{gallery.length ? 'Add another photo' : 'No images selected'}</div>
           <label className="attraction-upload-label">Upload image<input type="file" accept="image/jpeg,image/png,image/webp" disabled={disabled || uploading || gallery.length >= 8} onChange={event => { choose(event.target.files?.[0], 'gallery'); event.target.value = ''; }} /></label>
