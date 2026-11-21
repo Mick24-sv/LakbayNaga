@@ -79,20 +79,21 @@ backend/
     data/
       attractions.js             Temporary planning records
     scripts/
-      create-admin.js            Future admin provisioning placeholder
+      create-admin.js            Administrator provisioning
   test/
     integration/
       health.test.js
       authentication.test.js
       attractions.test.js
       auth-admin.test.js
-      features.test.js            TODO
-      planner.test.js             TODO
+      features.test.js            Concurrent password-change regression
+      planner.test.js             Planner validation and budget checks
+      budget-qa.test.js           Independent cent/calendar calculations
+      user-journeys.test.js       Complete API user/admin journeys
   .env.example
 ```
 
-Only the starter homepage is currently rendered. Other frontend components retain
-existing placeholders; folder organization does not mean those features are complete.
+The application now includes attraction browsing/details, accounts, itinerary planning, saved trips, profile editing, and the admin workspace. See the ticket-specific sections below for API contracts and verification scope.
 
 ## Organization rules
 
@@ -121,6 +122,8 @@ All existing API URLs are preserved:
 | GET /api/auth/me | Public session inspection |
 | POST /api/auth/logout | Ends the current session |
 | GET /api/profile | Login required |
+| PUT /api/profile | Login required; update firstName and lastName only |
+| PUT /api/profile/password | Login required; currentPassword and newPassword; rotates/revokes sessions |
 | GET /api/admin/attractions | Administrator required |
 
 Attraction query examples:
@@ -320,3 +323,7 @@ Google local setup: set `GOOGLE_CLIENT_ID` in `backend/.env` and the same public
 ## LNK-SEC-01: API authorization and input-validation audit
 
 Run `node --test backend/test/integration/security.test.js` from the project root. These tests use isolated memory stores and do not write to MongoDB. They cover guest/forged-session rejection (401), ordinary-user rejection on every admin route (403), immediate role-change enforcement, saved-trip ownership (including administrator accounts), forged ownership fields, structured database-style input, and rejected requests leaving records unchanged. Search is limited to 200 characters, category to 40 characters, and planner preferences to 32 entries. This ticket verifies API authorization and validation; authentication rate limits, database configuration, and upload hardening remain separate security tickets.
+
+## LNK-QA-01 verification
+
+See [the QA report](docs/qa/LNK-QA-01.md) for verified journeys, bug fixes, screenshots, repeatable commands, and external acceptance checks. Run `npm test` and `npm run build` from the root. `node backend/src/scripts/check-qa-persistence.js` verifies profile/password/session/trip persistence in isolated MongoDB collections and cleans them up. Profile APIs accept only the documented fields; the password route requires the current password.

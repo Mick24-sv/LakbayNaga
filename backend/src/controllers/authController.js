@@ -113,6 +113,37 @@ export function createAuthController(store, access, { mailer = sendResetEmail, g
       res.json({ message: 'Password updated. You can now log in.' });
     },
 
+    async updateProfile(req, res) {
+      const body = req.body;
+      if (!body || typeof body !== 'object' || Array.isArray(body)) return res.status(400).json({ error: 'Send your first and last names.' });
+      const allowed = ['firstName', 'lastName'];
+      if (Object.keys(body).some(key => !allowed.includes(key))) return res.status(400).json({ error: 'Only first and last names can be updated here.' });
+      const names = {};
+      for (const key of allowed) {
+        if (typeof body[key] !== 'string' || !body[key].trim() || body[key].trim().length > 60) return res.status(400).json({ error: 'Enter first and last names, up to 60 characters each.' });
+        names[key] = body[key].trim();
+      }
+      const user = await store.updateProfile(req.user._id, names);
+      if (!user) return res.status(401).json({ error: 'Please log in to continue.' });
+      res.json({ user: publicUser(user) });
+    },
+
+    async changePassword(req, res) {
+      const body = req.body;
+      if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).some(key => !['currentPassword', 'newPassword'].includes(key))) return res.status(400).json({ error: 'Send your current and new passwords.' });
+      let password;
+      try { password = validatePassword(body.newPassword); }
+      catch (error) { return res.status(400).json({ error: error.message }); }
+      if (typeof body.currentPassword !== 'string' || body.currentPassword.length > 128) return res.status(400).json({ error: 'Enter your current password.' });
+      const existing = await store.userById(req.user._id);
+      const previousHash = existing?.passwordHash;
+      if (!previousHash || !await verifyPassword(body.currentPassword, previousHash)) return res.status(401).json({ error: 'Your current password is incorrect.' });
+      const user = await store.setPassword(req.user._id, await hashPassword(password), previousHash);
+      if (!user) return res.status(409).json({ error: 'Your password changed during this request. Please log in again.' });
+      await store.revokeUserSessions(req.user._id);
+      await access.login(req, res, user);
+    },
+
     me(req, res) {
       res.json({ user: req.user ? publicUser(req.user) : null });
     },

@@ -61,9 +61,18 @@ export function makeStore() {
       return users.get(record.userId) || null;
     },
 
-    async setPassword(userId, passwordHash) {
+    async updateProfile(userId, { firstName, lastName }) {
       const user = users.get(userId);
       if (!user) return null;
+      user.firstName = firstName;
+      user.lastName = lastName;
+      return user;
+    },
+
+    async setPassword(userId, passwordHash, expectedHash) {
+      const user = users.get(userId);
+      if (!user) return null;
+      if (expectedHash !== undefined && user.passwordHash !== expectedHash) return null;
       user.passwordHash = passwordHash;
       return user;
     },

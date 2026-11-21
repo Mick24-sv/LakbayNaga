@@ -13,5 +13,7 @@ export function createAuthRoutes(store, access, options) {
   router.get('/auth/me', controller.me);
   router.post('/auth/logout', asyncHandler(controller.logout));
   router.get('/profile', access.required, controller.me);
+  router.put('/profile', access.required, asyncHandler(controller.updateProfile));
+  router.put('/profile/password', access.required, asyncHandler(controller.changePassword));
   return router;
 }

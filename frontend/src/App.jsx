@@ -111,7 +111,7 @@ export default function App() {
 
   /* ── Logged-in guard: redirect guests away from #trips / #profile ── */
   useEffect(() => {
-    if ((page === 'trips' || page === 'profile') && !checkingSession && !user) {
+    if ((page === 'trips' || page === 'profile') && currentPage() === page && !checkingSession && !user) {
       window.location.hash = 'login';
     }
   }, [page, user, checkingSession]);

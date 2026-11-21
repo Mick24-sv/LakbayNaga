@@ -45,6 +45,10 @@ export function normalizeInput(input = {}) {
         !Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== startDate) {
       throw new InputError('Choose a valid start date.');
     }
+    const lastDate = new Date(date.getTime() + (days - 1) * 86400000);
+    if (lastDate.getUTCFullYear() > 9999) {
+      throw new InputError('Choose dates that keep the entire trip within year 9999.');
+    }
   }
   const pace = input.pace ?? 'balanced';
   const transport = input.transport ?? 'public';
