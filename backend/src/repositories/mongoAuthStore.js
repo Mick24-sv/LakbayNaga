@@ -15,17 +15,20 @@ function account(document) {
 }
 
 
-export function makeMongoAuthStore() {
+export function makeMongoAuthStore({ models = {} } = {}) {
+  const userModel = models.User || User;
+  const sessionModel = models.Session || Session;
+  const resetModel = models.PasswordReset || PasswordReset;
   return {
     async initialize() {
-      await User.createIndexes();
-      await Session.createIndexes();
-      await PasswordReset.createIndexes();
+      await userModel.createIndexes();
+      await sessionModel.createIndexes();
+      await resetModel.createIndexes();
     },
 
 
     async userByEmail(email) {
-      const user = await User.findOne({
+      const user = await userModel.findOne({
         email: email.trim().toLowerCase()
       }).lean();
 
@@ -38,13 +41,13 @@ export function makeMongoAuthStore() {
       if (!mongoose.isObjectIdOrHexString(id)) return null;
 
 
-      return account(await User.findById(id).lean());
+      return account(await userModel.findById(id).lean());
     },
 
 
     async addUser(data) {
       // Only explicitly allowed account fields reach MongoDB.
-      const user = await User.create({
+      const user = await userModel.create({
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
@@ -58,29 +61,35 @@ export function makeMongoAuthStore() {
     },
 
     async userByGoogleId(googleId) {
-      return account(await User.findOne({ googleId }).lean());
+      return account(await userModel.findOne({ googleId }).lean());
     },
 
     async linkGoogleId(userId, googleId) {
-      return account(await User.findByIdAndUpdate(userId, { $set: { googleId } }, { new: true }).lean());
+      return account(await userModel.findByIdAndUpdate(userId, { $set: { googleId } }, { returnDocument: 'after' }).lean());
     },
 
     async createPasswordReset(digest, record) {
-      await PasswordReset.create({ digest, userId: String(record.userId), expiresAt: new Date(record.expiresAt) });
+      await resetModel.create({ digest, userId: String(record.userId), expiresAt: new Date(record.expiresAt) });
     },
 
     async consumePasswordReset(digest) {
-      const row = await PasswordReset.findOneAndDelete({ digest, expiresAt: { $gt: new Date() } }).lean();
-      return row ? account(await User.findById(row.userId).lean()) : null;
+      const row = await resetModel.findOneAndDelete({ digest, expiresAt: { $gt: new Date() } }).lean();
+      return row ? account(await userModel.findById(row.userId).lean()) : null;
     },
 
-    async setPassword(userId, passwordHash) {
-      return account(await User.findByIdAndUpdate(userId, { $set: { passwordHash } }, { new: true }).lean());
+    async updateProfile(userId, { firstName, lastName }) {
+      return account(await userModel.findByIdAndUpdate(userId, { $set: { firstName, lastName } }, { returnDocument: 'after', runValidators: true }).lean());
+    },
+
+    async setPassword(userId, passwordHash, expectedHash) {
+      const filter = { _id: userId };
+      if (expectedHash !== undefined) filter.passwordHash = expectedHash;
+      return account(await userModel.findOneAndUpdate(filter, { $set: { passwordHash } }, { returnDocument: 'after', runValidators: true }).lean());
     },
 
 
     async putSession(digest, session) {
-      await Session.updateOne(
+      await sessionModel.updateOne(
         { digest },
         {
           $set: {
@@ -98,7 +107,7 @@ export function makeMongoAuthStore() {
 
     async session(digest) {
       // Reject expired sessions immediately, even before TTL cleanup.
-      const session = await Session.findOne({
+      const session = await sessionModel.findOne({
         digest,
         expiresAt: { $gt: new Date() }
       }).lean();
@@ -115,11 +124,11 @@ export function makeMongoAuthStore() {
 
 
     async deleteSession(digest) {
-      await Session.deleteOne({ digest });
+      await sessionModel.deleteOne({ digest });
     },
 
     async revokeUserSessions(userId) {
-      await Session.deleteMany({ userId: String(userId) });
+      await sessionModel.deleteMany({ userId: String(userId) });
     }
   };
 }

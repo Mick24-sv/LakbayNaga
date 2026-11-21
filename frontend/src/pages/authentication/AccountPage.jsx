@@ -17,7 +17,8 @@ export default function AccountPage({ mode = 'login', onSuccess, siteImages = {}
   const [googleReady, setGoogleReady] = useState(false), [googleBusy, setGoogleBusy] = useState(false), [googleError, setGoogleError] = useState('');
   const [resetMode, setResetMode] = useState(false), [resetEmail, setResetEmail] = useState(''), [resetMessage, setResetMessage] = useState('');
   const [resetBusy, setResetBusy] = useState(false), [resetError, setResetError] = useState(''), [newPassword, setNewPassword] = useState('');
-  const resetToken = new URLSearchParams(window.location.hash.split('?')[1] || '').get('token') || '';
+  // Capture once before the effect scrubs the URL; input/parent rerenders must retain it.
+  const [resetToken] = useState(() => new URLSearchParams(window.location.hash.split('?')[1] || '').get('token') || '');
 
   useEffect(() => {
     if (!isReset || !resetToken) return;

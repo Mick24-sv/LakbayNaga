@@ -113,7 +113,7 @@ export default function App() {
 
   /* ── Logged-in guard: redirect guests away from private account pages ── */
   useEffect(() => {
-    if ((page === 'trips' || page === 'profile' || page === 'saved-places') && !checkingSession && !user) {
+    if (['trips', 'profile', 'saved-places'].includes(page) && currentPage() === page && !checkingSession && !user) {
       window.location.hash = 'login';
     }
   }, [page, user, checkingSession]);
