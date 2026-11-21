@@ -1,7 +1,8 @@
 import ConfirmDialog from '../dialogs/ConfirmDialog.jsx';
 import React from 'react';
 import ImageCropper from './SiteImageCropper.jsx';
-export const uploadedImage=url=>typeof url==='string'&&/^\/api\/images\/[a-f0-9]{32}$/.test(url)?url:'';
+import { uploadedImage } from './imageUrls.js';
+export { uploadedImage };
 export function PlacePhoto({place,...props}){const src=uploadedImage(place?.imageUrl);return src?<img src={src} alt={place.name} {...props}/>:null;}
 export function ImageUpload({label,description,recommendation,cropRatio=3/2,value,onChange,disabled=false}){
  const[source,setSource]=React.useState('');
