@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import RouteMap from '../../components/maps/RouteMap.jsx';
 import SiteImages from './SiteImages.jsx';
 import AttractionPhotos from './AttractionPhotos.jsx';
+import { uploadedImage } from '../../components/media/imageUrls.js';
 import {
   adminCategories,
   adminRequest,
@@ -225,7 +226,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout, site
       {/* ── sidebar ── */}
       <aside className="admin-sidebar" id="admin-navigation">
         <a className="admin-wordmark" href="#home">
-          {siteImages.logoImage && <img src={siteImages.logoImage} alt="" />}
+          {uploadedImage(siteImages.logoImage) && <img src={uploadedImage(siteImages.logoImage)} alt="" />}
           <div>
             LakbayNaga
             <span>Administration</span>
