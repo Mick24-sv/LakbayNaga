@@ -1,9 +1,9 @@
 import ConfirmDialog from '../../components/dialogs/ConfirmDialog.jsx';
+import EditTripDialog from './EditTripDialog.jsx';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { formatPHP } from '../planner/plannerLogic.js';
+import { attractionPhoto } from '../../components/media/imageUrls.js';
 import './TripsPage.css';
-
-const EDIT_KEY = 'lakbaynaga.itinerary.edit';
 
 async function itineraryRequest(path, options = {}) {
   const response = await fetch('/api/itineraries' + path, {
@@ -49,6 +49,9 @@ export default function TripsPage() {
   const [pendingDelete, setPendingDelete] = useState('');
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [openingId, setOpeningId] = useState('');
+  const [editTarget, setEditTarget] = useState(null);
+  const [savingEditId, setSavingEditId] = useState('');
+  const [editError, setEditError] = useState('');
   const [loadFailed, setLoadFailed] = useState(false);
   const [message, setMessage] = useState('');
   const mutationLock = useRef(false);
@@ -114,8 +117,9 @@ export default function TripsPage() {
     try {
       // Load the authoritative owned record; the list may be stale.
       const saved = await itineraryRequest('/' + encodeURIComponent(trip.id));
-      sessionStorage.setItem(EDIT_KEY, JSON.stringify(saved));
-      window.location.hash = 'planner';
+      if (!saved?.id || !saved?.plan?.settings) throw new Error('This saved itinerary could not be opened for editing.');
+      setEditError('');
+      setEditTarget(saved);
     } catch (requestError) {
       setError(requestError instanceof TypeError
         ? 'Unable to connect. Check your connection and try again.'
@@ -123,6 +127,33 @@ export default function TripsPage() {
     } finally {
       mutationLock.current = false;
       setOpeningId('');
+    }
+  }
+
+  async function saveEditedTrip({ name, settings }) {
+    const trip = editTarget;
+    if (!trip || mutationLock.current) return;
+    mutationLock.current = true;
+    setSavingEditId(trip.id);
+    setEditError('');
+    try {
+      const updated = await itineraryRequest('/' + encodeURIComponent(trip.id), {
+        method: 'PUT',
+        body: JSON.stringify({ name, settings }),
+      });
+      if (!updated?.id || !updated.plan?.settings || !Array.isArray(updated.plan.stops)) {
+        throw new Error('The server did not return the updated itinerary.');
+      }
+      setTrips(current => current.map(row => row.id === updated.id ? updated : row));
+      setEditTarget(null);
+      setMessage('Itinerary updated.');
+    } catch (requestError) {
+      setEditError(requestError instanceof TypeError
+        ? 'Unable to connect. Check your connection and try again.'
+        : requestError.message);
+    } finally {
+      mutationLock.current = false;
+      setSavingEditId('');
     }
   }
 
@@ -157,11 +188,11 @@ export default function TripsPage() {
                 const stops = Array.isArray(plan.stops) ? plan.stops : [];
                 const days = Number(plan.settings?.days) || plan.days?.length || 1;
                 const travelers = Number(plan.settings?.people) || 1;
-                const photo = stops.find(stop => stop.imageUrl)?.imageUrl;
+                const photo = stops.map(stop => attractionPhoto(stop.imageUrl)).find(Boolean);
                 return (
                   <li className="trips-card" key={trip.id}>
                     {photo ? (
-                      <img className="trips-card-photo" src={photo} alt={stops.find(stop => stop.imageUrl)?.name || 'Attraction in this itinerary'} />
+                      <img className="trips-card-photo" src={photo} alt={stops.find(stop => attractionPhoto(stop.imageUrl))?.name || 'Attraction in this itinerary'} />
                     ) : (
                       <div className="trips-card-photo trips-card-photo--fallback" aria-hidden="true">LakbayNaga</div>
                     )}
@@ -171,8 +202,8 @@ export default function TripsPage() {
                       <p>{tripDate(plan)}</p>
                       <p className="trips-card-expenses">Est. expenses {formatPHP(plan.totals?.total)}</p>
                       <div className="trips-card-actions">
-                        <button type="button" className="trips-open-btn" disabled={Boolean(pendingDelete || openingId)} onClick={() => openTrip(trip)}>{openingId === trip.id ? 'Opening...' : 'Open / edit'}</button>
-                        <button type="button" className="trips-delete-btn" disabled={Boolean(pendingDelete || openingId)} onClick={() => { setError(''); setDeleteTarget(trip); }}>
+                        <button type="button" className="trips-open-btn" disabled={Boolean(pendingDelete || openingId || savingEditId)} onClick={() => openTrip(trip)}>{openingId === trip.id ? 'Loading…' : 'Edit trip'}</button>
+                        <button type="button" className="trips-delete-btn" disabled={Boolean(pendingDelete || openingId || savingEditId)} onClick={() => { setError(''); setDeleteTarget(trip); }}>
                           {pendingDelete === trip.id ? 'Deleting…' : 'Delete'}
                         </button>
                       </div>
@@ -195,8 +226,14 @@ export default function TripsPage() {
         onCancel={() => { if (!mutationLock.current) setDeleteTarget(null); }}
         onConfirm={deleteTrip}
       />}
+      {editTarget && <EditTripDialog
+        key={editTarget.id}
+        trip={editTarget}
+        busy={savingEditId === editTarget.id}
+        error={editError}
+        onCancel={() => { if (!mutationLock.current) { setEditTarget(null); setEditError(''); } }}
+        onSave={saveEditedTrip}
+      />}
     </main>
   );
 }
-
-export { EDIT_KEY };

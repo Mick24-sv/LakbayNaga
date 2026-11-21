@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react';
+import { attractionPhoto } from '../../components/media/imageUrls.js';
+
+export { attractionPhoto };
 
 
 export function useAttractionDetails(encodedId) {
@@ -80,16 +83,4 @@ export function useAttractionDetails(encodedId) {
     error,
     retry: () => setAttempt(current => current + 1)
   };
-}
-
-
-export function attractionPhoto(url) {
-  if (typeof url !== 'string') return '';
-
-
-  // Match the local image paths supported by the finished system.
-  return /^\/assets\/[a-zA-Z0-9_.-]+$/.test(url) ||
-    /^\/api\/images\/[a-f0-9]{32}$/.test(url)
-    ? url
-    : '';
 }

@@ -67,6 +67,9 @@ test('DB-04: uploads reject invalid bytes, MIME mismatch, unsupported types, and
  assert.equal((await request('/admin/images','POST',Buffer.from('not an image'),admin,'image/png')).status,400);
  assert.equal((await request('/admin/images','POST',png,admin,'image/jpeg')).status,400);
  assert.equal((await request('/admin/images','POST',Buffer.from('SVG'),admin,'image/svg+xml')).status,400);
+ assert.equal((await request('/admin/images','POST',Buffer.from('<svg onload="alert(1)"></svg>'),admin,'image/png')).status,400);
+ const maxSizeImage=Buffer.alloc(5*1024*1024);png.copy(maxSizeImage);
+ assert.equal((await request('/admin/images','POST',maxSizeImage,admin,'image/png')).status,201);
  assert.equal((await request('/admin/images','POST',Buffer.alloc(5*1024*1024+1),admin,'image/png')).status,413);
 }));
 

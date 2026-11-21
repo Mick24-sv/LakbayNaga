@@ -1,5 +1,6 @@
 import { useNavigationTransitions } from './components/navigation/useNavigationTransitions.js';
 import AccountDropdown from './components/navigation/AccountDropdown.jsx';
+import { uploadedImage } from './components/media/imageUrls.js';
 import AboutPage from './pages/about/AboutPage.jsx';
 import { useEffect, useRef, useState } from 'react';
 import HomePage from './pages/home/HomePage.jsx';
@@ -9,6 +10,7 @@ import AttractionDetailsPage from './pages/attraction-details/AttractionDetailsP
 import AdminPage from './pages/admin/AdminPage.jsx';
 import TripsPage from './pages/itineraries/TripsPage.jsx';
 import ProfilePage from './pages/profile/ProfilePage.jsx';
+import SavedPlacesPage from './pages/saved-places/SavedPlacesPage.jsx';
 import { accountRequest } from './pages/authentication/accountLogic.js';
 import PlannerPage from './pages/planner/PlannerPage.jsx';
 import { hasPendingForm } from './pages/planner/plannerLogic.js';
@@ -20,7 +22,7 @@ function currentPage() {
   if (page.startsWith('reset-password')) return 'reset-password';
   const allowedPages = [
     'home', 'explore', 'planner', 'login', 'register',
-    'trips', 'profile', 'admin', 'about',
+    'trips', 'profile', 'saved-places', 'admin', 'about',
   ];
 
   if (page.startsWith('place/')) return page;
@@ -109,9 +111,9 @@ export default function App() {
     }
   }
 
-  /* ── Logged-in guard: redirect guests away from #trips / #profile ── */
+  /* ── Logged-in guard: redirect guests away from private account pages ── */
   useEffect(() => {
-    if ((page === 'trips' || page === 'profile') && currentPage() === page && !checkingSession && !user) {
+    if (['trips', 'profile', 'saved-places'].includes(page) && currentPage() === page && !checkingSession && !user) {
       window.location.hash = 'login';
     }
   }, [page, user, checkingSession]);
@@ -147,6 +149,8 @@ export default function App() {
     content = user ? <TripsPage key={page} user={user} /> : null;
   } else if (page === 'profile') {
     content = user ? <ProfilePage key={page} user={user} onUpdate={setUser} /> : null;
+  } else if (page === 'saved-places') {
+    content = user ? <SavedPlacesPage key={page} user={user} /> : null;
   } else if (page === 'admin') {
     content = <AdminPage key={page} user={user} checkingSession={checkingSession} onLogout={logout} siteImages={siteImages} />;
   } else {
@@ -162,7 +166,7 @@ export default function App() {
         {!['admin', 'login', 'register', 'reset-password'].includes(page) && <header className="site-header">
         <div className="site-header-inner">
           <a className="site-brand" href="#home">
-            {siteImages.logoImage && <img src={siteImages.logoImage} alt="" />}
+            {uploadedImage(siteImages.logoImage) && <img src={uploadedImage(siteImages.logoImage)} alt="" />}
             <div className="site-brand-copy">
               <strong>LakbayNaga</strong>
               <small>Naga City &middot; Camarines Sur, Philippines</small>
@@ -192,14 +196,15 @@ export default function App() {
               Plan a trip
             </a>
 
-            <a href="#about" aria-current={page === 'about' ? 'page' : undefined}>
-              About us
-            </a>
-
             {checkingSession ? (
-              <span className="site-session-status" role="status">
-                Checking session...
-              </span>
+              <>
+                <span className="site-session-status" role="status">
+                  Checking session...
+                </span>
+                <a href="#about" aria-current={page === 'about' ? 'page' : undefined}>
+                  About us
+                </a>
+              </>
             ) : user ? (
               <>
                 <a
@@ -207,6 +212,10 @@ export default function App() {
                   aria-current={page === 'trips' ? 'page' : undefined}
                 >
                   Saved trips
+                </a>
+
+                <a href="#about" aria-current={page === 'about' ? 'page' : undefined}>
+                  About us
                 </a>
 
                 {user.role === 'admin' && (
@@ -236,6 +245,10 @@ export default function App() {
                 >
                   Sign Up
                 </a>
+
+                <a href="#about" aria-current={page === 'about' ? 'page' : undefined}>
+                  About us
+                </a>
               </>
             )}
           </nav>
@@ -249,7 +262,7 @@ export default function App() {
       )}
 
       <div className="site-page-content">{content}</div>
-      {(['home', 'explore', 'planner', 'trips', 'about'].includes(page) || page.startsWith('place/')) && (
+      {(['home', 'explore', 'planner', 'trips', 'saved-places', 'about'].includes(page) || page.startsWith('place/')) && (
         <footer className="site-footer">
           <div className="site-footer-inner">
             <section>

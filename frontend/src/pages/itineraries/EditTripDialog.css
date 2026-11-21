@@ -1,0 +1,38 @@
+.edit-trip-dialog,.edit-trip-dialog * { box-sizing: border-box; }
+.edit-trip-dialog { width: min(760px, calc(100vw - 28px)); max-height: min(90dvh, 820px); margin: auto; padding: 26px; overflow: auto; border: 1px solid #dce5ef; border-radius: 14px; background: #fff; color: #263b4f; font-family: Inter,Arial,sans-serif; box-shadow: 0 24px 80px #102d4938; }
+.edit-trip-dialog::backdrop { background: #152b4266; backdrop-filter: blur(3px); }
+.edit-trip-dialog fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.edit-trip-heading { margin-bottom: 20px; }
+.edit-trip-heading p,.edit-trip-heading h2 { margin: 0; }
+.edit-trip-eyebrow { margin-bottom: 6px !important; color: #52728c; font-size: 11px; font-weight: 700; letter-spacing: 1px; }
+.edit-trip-heading h2 { margin-bottom: 6px; color: #203449; font-size: 23px; line-height: 30px; }
+.edit-trip-heading > p:last-child { color: #617487; font-size: 13px; line-height: 20px; }
+.edit-trip-name { margin-bottom: 16px !important; }
+.edit-trip-grid { display: grid; gap: 12px; margin-bottom: 14px; }
+.edit-trip-grid--three { grid-template-columns: repeat(3,minmax(0,1fr)); }
+.edit-trip-field { display: grid; align-content: start; gap: 6px; min-width: 0; color: #40566b; font-size: 12px; line-height: 17px; font-weight: 600; }
+.edit-trip-field input,.edit-trip-field select { width: 100%; min-width: 0; height: 40px; padding: 8px 10px; border: 1px solid #cad6e2; border-radius: 6px; background: white; color: #30485d; font: inherit; font-size: 13px; font-weight: 400; }
+.edit-trip-field input:focus-visible,.edit-trip-field select:focus-visible,.edit-trip-interests input:focus-visible { outline: 3px solid #67b8e1; outline-offset: 2px; }
+.edit-trip-interests { margin-top: 2px !important; padding: 12px !important; border: 1px solid #e1e8ef !important; border-radius: 7px; }
+.edit-trip-interests legend { padding: 0 5px; color: #40566b; font-size: 12px; font-weight: 700; }
+.edit-trip-interests legend span { color: #718294; font-weight: 400; }
+.edit-trip-interests > div { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px 16px; }
+.edit-trip-interests label { display: flex; align-items: center; gap: 8px; color: #40566b; font-size: 13px; }
+.edit-trip-interests input { width: 16px; height: 16px; margin: 0; accent-color: #2450df; }
+.edit-trip-error { margin: 14px 0 0; padding: 10px 12px; border-radius: 6px; background: #fff1f2; color: #922d37; font-size: 13px; line-height: 20px; }
+.edit-trip-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+.edit-trip-actions button { min-height: 42px; padding: 9px 15px; border: 1px solid #cbd8e5; border-radius: 6px; background: #fff; color: #30485d; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.edit-trip-actions .edit-trip-submit { border-color: #244fda; background: #244fda; color: #fff; }
+.edit-trip-actions .edit-trip-submit:hover { background: #1b40b4; }
+.edit-trip-actions button:disabled { opacity: .65; cursor: wait; }
+.edit-trip-actions button:focus-visible { outline: 3px solid #67b8e1; outline-offset: 2px; }
+@media(max-width:600px) {
+  .edit-trip-dialog { padding: 20px; }
+  .edit-trip-grid--three { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media(max-width:390px) {
+  .edit-trip-grid--three { grid-template-columns: minmax(0,1fr); }
+  .edit-trip-interests > div { grid-template-columns: minmax(0,1fr); }
+  .edit-trip-actions { flex-direction: column-reverse; }
+  .edit-trip-actions button { width: 100%; }
+}

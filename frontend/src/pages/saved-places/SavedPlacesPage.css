@@ -1,0 +1,84 @@
+.saved-places-page,.saved-places-page * { box-sizing: border-box; }
+.saved-places-page { padding: 28px 24px 56px; color: #2d3e4b; font-family: Inter,Arial,sans-serif; }
+.saved-places-shell { width: min(100%, 1150px); margin: 0 auto; }
+.saved-places-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 26px; }
+.saved-places-heading h1,.saved-places-heading p { margin: 0; }
+.saved-places-eyebrow { display: flex; align-items: center; gap: 10px; margin-bottom: 10px !important; color: #203c62; font-size: 12px; line-height: 18px; font-weight: 700; letter-spacing: .8px; }
+.saved-places-eyebrow span { width: 20px; height: 2px; background: #289ed1; }
+.saved-places-heading h1 { margin-bottom: 6px; color: #203044; font-size: 36px; line-height: 1.15; letter-spacing: -.5px; }
+.saved-places-heading > div > p:last-child { color: #5c6f7e; font-size: 15px; line-height: 22px; }
+.saved-places-explore { display: inline-flex; align-items: center; gap: 10px; min-height: 42px; padding: 9px 14px; border: 1px solid #4aa4d0; border-radius: 7px; background: #213b50; color: #fff; font-size: 13px; font-weight: 600; text-decoration: none; white-space: nowrap; }
+.saved-places-explore:hover { background: #152e42; }
+.saved-places-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 16px; }
+.saved-places-toolbar h2 { margin: 0; font-size: 17px; line-height: 24px; }
+.saved-places-toolbar label { display: flex; align-items: center; gap: 10px; color: #405363; font-size: 13px; font-weight: 600; }
+.saved-places-toolbar select { min-height: 40px; padding: 8px 30px 8px 10px; border: 1px solid #9aa8b3; border-radius: 6px; background: white; color: #405363; font: inherit; font-weight: 400; }
+.saved-places-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; align-items: start; gap: 20px; }
+.saved-places-list { display: grid; gap: 12px; min-width: 0; }
+.saved-place-card { display: grid; grid-template-columns: 236px minmax(0, 1fr); min-height: 194px; overflow: hidden; border-radius: 10px; background: #f2f4f5; }
+.saved-place-image { display: block; width: 100%; height: 100%; min-height: 194px; object-fit: cover; background: #e5ebef; }
+.saved-place-image--empty { display: grid; place-items: center; padding: 16px; color: #657986; font-size: 13px; text-align: center; }
+.saved-place-content { display: flex; flex-direction: column; min-width: 0; padding: 18px 18px 16px; }
+.saved-place-topline { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; }
+.saved-place-category { color: #5b6e7b; font-size: 11px; line-height: 16px; }
+.saved-place-saved { display: inline-flex; align-items: center; gap: 6px; color: #5f6f7b; font-size: 11px; white-space: nowrap; }
+.saved-place-content h2 { margin: 0 0 5px; color: #304252; font-size: 17px; line-height: 24px; }
+.saved-place-description,.saved-place-location { margin: 0; color: #465a69; font-size: 13px; line-height: 19px; }
+.saved-place-description { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.saved-place-location { margin-top: 3px; font-size: 12px; }
+.saved-place-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: auto; padding-top: 10px; }
+.saved-place-view { display: inline-flex; align-items: center; gap: 12px; min-height: 38px; padding: 8px 12px; border: 1px solid #c8e4f6; border-radius: 6px; background: #e9f5fc; color: #2582bc; font-size: 13px; font-weight: 600; text-decoration: none; }
+.saved-place-view:hover { background: #dcedf8; }
+.saved-place-remove { display: inline-flex; align-items: center; gap: 5px; min-height: 38px; padding: 7px 4px; border: 0; background: transparent; color: #405363; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.saved-place-remove:hover { color: #a62e37; }
+.saved-place-remove:disabled { opacity: .6; cursor: wait; }
+.saved-places-collection,.saved-places-note { padding: 20px; border: 1px solid #edf0f3; border-radius: 10px; background: white; }
+.saved-places-collection h2,.saved-places-note h2 { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; color: #405363; font-size: 17px; line-height: 24px; }
+.saved-places-collection > p,.saved-places-note > p { margin: 0; color: #4e626f; font-size: 13px; line-height: 20px; }
+.saved-places-collection ul { display: grid; gap: 0; margin: 16px 0 0; padding: 10px 0 0; border-top: 1px solid #edf0f3; list-style: none; }
+.saved-places-collection li { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 34px; color: #4e626f; font-size: 12px; }
+.saved-places-collection li strong { color: #405363; }
+.saved-places-note { margin-top: 18px; border: 0; background: #f2f4f5; }
+.saved-places-note-accent { display: block; width: 28px; height: 4px; margin-bottom: 12px; background: #e9b72e; }
+.saved-places-note h2 { margin-bottom: 8px; }
+.saved-places-note a { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; color: #405363; font-size: 12px; font-weight: 700; text-decoration: none; }
+.saved-places-note a:hover { text-decoration: underline; }
+.saved-places-empty,.saved-places-state { padding: 34px 22px; border: 1px solid #e2e8ee; border-radius: 10px; background: white; color: #5c6f7e; text-align: center; }
+.saved-places-empty h2 { margin: 0 0 8px; color: #304252; font-size: 20px; }
+.saved-places-empty p { margin: 0 0 14px; }
+.saved-places-empty a { color: #1879bd; font-weight: 600; text-decoration: none; }
+.saved-places-empty a:hover { text-decoration: underline; }
+.saved-places-state button { min-height: 40px; padding: 8px 14px; border: 1px solid #9aa8b3; border-radius: 6px; background: white; cursor: pointer; }
+.saved-places-unavailable,.saved-places-error,.saved-places-message { margin: 0; padding: 11px 13px; border-radius: 6px; font-size: 13px; line-height: 19px; }
+.saved-places-unavailable { background: #fff8e8; color: #76591a; }
+.saved-places-error { margin-bottom: 14px; background: #fff1f2; color: #922d37; }
+.saved-places-message { margin-bottom: 14px; background: #edf8f1; color: #25633d; }
+.saved-places-credit { margin: 0; color: #5f6f7b; font-size: 10px; line-height: 15px; }
+.saved-places-page a:focus-visible,.saved-places-page button:focus-visible,.saved-places-page select:focus-visible { outline: 3px solid #67b8e1; outline-offset: 2px; }
+@media (max-width: 850px) {
+  .saved-places-layout { grid-template-columns: minmax(0, 1fr) 260px; gap: 14px; }
+  .saved-place-card { grid-template-columns: 190px minmax(0, 1fr); }
+  .saved-place-content { padding: 14px; }
+}
+@media (max-width: 680px) {
+  .saved-places-page { padding: 24px 16px 42px; }
+  .saved-places-heading { align-items: flex-start; flex-direction: column; gap: 16px; }
+  .saved-places-heading h1 { font-size: 32px; }
+  .saved-places-layout { grid-template-columns: minmax(0, 1fr); }
+  .saved-places-aside { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+  .saved-places-note { margin-top: 0; }
+}
+@media (max-width: 520px) {
+  .saved-places-toolbar { align-items: flex-start; flex-direction: column; gap: 10px; }
+  .saved-place-card { grid-template-columns: 112px minmax(0,1fr); min-height: 0; }
+  .saved-place-image { min-height: 100%; height: 100%; }
+  .saved-place-content { padding: 12px; }
+  .saved-place-topline { align-items: flex-start; }
+  .saved-place-saved { font-size: 10px; }
+  .saved-place-content h2 { font-size: 15px; line-height: 21px; }
+  .saved-place-description { -webkit-line-clamp: 3; font-size: 12px; }
+  .saved-place-actions { flex-wrap: wrap; align-items: flex-start; }
+  .saved-place-view { min-height: 34px; font-size: 12px; }
+  .saved-place-remove { min-height: 34px; }
+  .saved-places-aside { grid-template-columns: minmax(0,1fr); }
+}
