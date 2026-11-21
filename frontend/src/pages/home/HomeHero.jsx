@@ -1,10 +1,13 @@
 // Shared by the homepage and the admin crop-layout measurement.
+import { uploadedImage } from '../../components/media/imageUrls.js';
+
 export default function HomeHero({ siteImages = {}, query = '', onQueryChange = () => {}, onSubmit = event => event.preventDefault(), idPrefix = 'home-' }) {
+  const banner = uploadedImage(siteImages.homepageBanner);
   return (
     <section className="home-hero" aria-labelledby={idPrefix + 'title'}>
-        {siteImages.homepageBanner && (
+        {banner && (
           <>
-            <img className="home-hero-photo" src={siteImages.homepageBanner} alt="" />
+            <img className="home-hero-photo" src={banner} alt="" />
             <div className="home-hero-shade" aria-hidden="true" />
           </>
         )}
