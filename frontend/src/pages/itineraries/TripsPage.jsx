@@ -2,6 +2,7 @@ import ConfirmDialog from '../../components/dialogs/ConfirmDialog.jsx';
 import EditTripDialog from './EditTripDialog.jsx';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { formatPHP } from '../planner/plannerLogic.js';
+import { attractionPhoto } from '../../components/media/imageUrls.js';
 import './TripsPage.css';
 
 async function itineraryRequest(path, options = {}) {
@@ -187,11 +188,11 @@ export default function TripsPage() {
                 const stops = Array.isArray(plan.stops) ? plan.stops : [];
                 const days = Number(plan.settings?.days) || plan.days?.length || 1;
                 const travelers = Number(plan.settings?.people) || 1;
-                const photo = stops.find(stop => stop.imageUrl)?.imageUrl;
+                const photo = stops.map(stop => attractionPhoto(stop.imageUrl)).find(Boolean);
                 return (
                   <li className="trips-card" key={trip.id}>
                     {photo ? (
-                      <img className="trips-card-photo" src={photo} alt={stops.find(stop => stop.imageUrl)?.name || 'Attraction in this itinerary'} />
+                      <img className="trips-card-photo" src={photo} alt={stops.find(stop => attractionPhoto(stop.imageUrl))?.name || 'Attraction in this itinerary'} />
                     ) : (
                       <div className="trips-card-photo trips-card-photo--fallback" aria-hidden="true">LakbayNaga</div>
                     )}
