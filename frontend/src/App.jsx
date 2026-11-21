@@ -192,14 +192,15 @@ export default function App() {
               Plan a trip
             </a>
 
-            <a href="#about" aria-current={page === 'about' ? 'page' : undefined}>
-              About us
-            </a>
-
             {checkingSession ? (
-              <span className="site-session-status" role="status">
-                Checking session...
-              </span>
+              <>
+                <span className="site-session-status" role="status">
+                  Checking session...
+                </span>
+                <a href="#about" aria-current={page === 'about' ? 'page' : undefined}>
+                  About us
+                </a>
+              </>
             ) : user ? (
               <>
                 <a
@@ -207,6 +208,10 @@ export default function App() {
                   aria-current={page === 'trips' ? 'page' : undefined}
                 >
                   Saved trips
+                </a>
+
+                <a href="#about" aria-current={page === 'about' ? 'page' : undefined}>
+                  About us
                 </a>
 
                 {user.role === 'admin' && (
@@ -235,6 +240,10 @@ export default function App() {
                   aria-current={page === 'register' ? 'page' : undefined}
                 >
                   Sign Up
+                </a>
+
+                <a href="#about" aria-current={page === 'about' ? 'page' : undefined}>
+                  About us
                 </a>
               </>
             )}
