@@ -10,13 +10,14 @@ import {
   usePlannerForm,
 } from './plannerLogic.js';
 import PlannerRouteMap from './PlannerRouteMap.jsx';
+import SavedItinerarySuccessDialog from '../../components/dialogs/SavedItinerarySuccessDialog.jsx';
 import './PlannerPage.css';
 
 
 export default function PlannerPage({ onNeedLogin }) {
   const [tripName, setTripName] = useState('My Naga trip');
   const [saveBusy, setSaveBusy] = useState(false);
-  const [saveMessage, setSaveMessage] = useState('');
+  const [saveSuccess, setSaveSuccess] = useState(null);
   const [saveError, setSaveError] = useState('');
   const saveLock = useRef(false);
   const {
@@ -39,7 +40,7 @@ export default function PlannerPage({ onNeedLogin }) {
   function handleSubmit(event) {
     event.preventDefault();
     if (saveLock.current) return;
-    setSaveMessage('');
+    setSaveSuccess(null);
     setSaveError('');
     generate(onNeedLogin);
   }
@@ -49,7 +50,7 @@ export default function PlannerPage({ onNeedLogin }) {
     if (saveLock.current || busy || !result?.stops?.length) return;
     saveLock.current = true;
     setSaveBusy(true);
-    setSaveMessage('');
+    setSaveSuccess(null);
     setSaveError('');
     try {
       const response = await fetch('/api/itineraries' + (savedTrip?.id ? '/' + encodeURIComponent(savedTrip.id) : ''), {
@@ -67,7 +68,7 @@ export default function PlannerPage({ onNeedLogin }) {
       }
       acceptSavedTrip(data);
       setTripName(data.name);
-      setSaveMessage(savedTrip?.id ? 'Your itinerary was updated.' : 'Your itinerary was saved.');
+      setSaveSuccess({ name: data.name, updated: Boolean(savedTrip?.id) });
     } catch (requestError) {
       setSaveError(requestError instanceof TypeError
         ? 'Unable to connect. Check your connection and try again.'
@@ -83,6 +84,7 @@ export default function PlannerPage({ onNeedLogin }) {
   const budget  = parseFloat(values.budget) || 0;
 
   return (
+    <>
     <main className="planner-page">
       <div className="planner-shell">
         <header className="planner-heading">
@@ -291,10 +293,9 @@ export default function PlannerPage({ onNeedLogin }) {
               onRemoveStop={removeStop}
               saveItinerary={saveItinerary}
               tripName={tripName}
-              setTripName={name => { setTripName(name); setSaveMessage(''); setSaveError(''); }}
+              setTripName={name => { setTripName(name); setSaveSuccess(null); setSaveError(''); }}
               saveBusy={saveBusy}
               savedTrip={savedTrip}
-              saveMessage={saveMessage}
               saveError={saveError}
             />
           )}
@@ -303,6 +304,13 @@ export default function PlannerPage({ onNeedLogin }) {
       </div>
       </div>
     </main>
+    {saveSuccess && <SavedItinerarySuccessDialog
+      name={saveSuccess.name}
+      updated={saveSuccess.updated}
+      onStay={() => setSaveSuccess(null)}
+      onView={() => { setSaveSuccess(null); window.location.hash = 'trips'; }}
+    />}
+    </>
   );
 }
 
@@ -331,7 +339,7 @@ function TripPreview({ days, people, budget }) {
 
 // ── Results panel (after generation) ─────────────────────────────────────────
 
-function ItineraryResults({ result, onRemoveStop, saveItinerary, tripName, setTripName, saveBusy, savedTrip, saveMessage, saveError }) {
+function ItineraryResults({ result, onRemoveStop, saveItinerary, tripName, setTripName, saveBusy, savedTrip, saveError }) {
   const [activeDay, setActiveDay] = useState(1);
 
   const { days, totals, notice, settings } = result;
@@ -454,7 +462,6 @@ function ItineraryResults({ result, onRemoveStop, saveItinerary, tripName, setTr
           <button type="submit" disabled={saveBusy}>
             {saveBusy ? 'Saving…' : savedTrip?.id ? 'Update saved itinerary' : 'Save itinerary'}
           </button>
-          {saveMessage && <p role="status">{saveMessage} <a href="#trips">View saved itineraries</a></p>}
           {saveError && <p role="alert">{saveError}</p>}
         </form>
       )}
