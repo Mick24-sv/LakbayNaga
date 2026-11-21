@@ -1,0 +1,16 @@
+.saved-success-dialog,.saved-success-dialog * { box-sizing: border-box; }
+.saved-success-dialog { width: min(460px, calc(100vw - 32px)); max-height: calc(100dvh - 40px); margin: auto; padding: 30px; overflow-y: auto; border: 1px solid #dce5ef; border-radius: 16px; background: #fff; color: #243746; font-family: Inter,Arial,sans-serif; box-shadow: 0 24px 80px #102d4938; }
+.saved-success-dialog::backdrop { background: #152b4266; backdrop-filter: blur(3px); }
+.saved-success-icon { display: grid; place-items: center; width: 52px; height: 52px; margin-bottom: 18px; border-radius: 50%; background: #e8f6ed; color: #16824b; }
+.saved-success-dialog h2 { margin: 0 0 8px; color: #23364a; font-size: 23px; line-height: 30px; }
+.saved-success-dialog p { margin: 0; color: #5b6e80; font-size: 14px; line-height: 22px; }
+.saved-success-dialog .saved-success-name { margin-top: 16px; padding: 12px 14px; overflow-wrap: anywhere; border: 1px solid #e3eaf1; border-radius: 8px; background: #f7f9fb; color: #304b63; font-weight: 600; }
+.saved-success-dialog .saved-success-prompt { margin-top: 20px; color: #334c60; font-weight: 600; }
+.saved-success-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.saved-success-actions button { min-height: 44px; padding: 10px 14px; border: 1px solid #cbd8e5; border-radius: 7px; background: #fff; color: #28445d; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.saved-success-actions .saved-success-view { border-color: #1d4ed8; background: #1d4ed8; color: #fff; }
+.saved-success-actions .saved-success-view:hover { background: #173fb2; }
+.saved-success-actions .saved-success-stay:hover { background: #f2f6fa; }
+.saved-success-actions button:focus-visible { outline: 3px solid #55a5d5; outline-offset: 3px; }
+@media(max-width:420px) { .saved-success-dialog { padding: 24px 20px; } .saved-success-actions { flex-direction: column; } .saved-success-actions button { width: 100%; } }
+@media(prefers-reduced-motion:reduce) { .saved-success-dialog { scroll-behavior: auto; } }

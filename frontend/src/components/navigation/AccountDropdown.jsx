@@ -50,6 +50,7 @@ export default function AccountDropdown({ user, onLogout, disabled = false, curr
     {open && <div className="account-dropdown-panel" id={panelId}>
       <p className="account-dropdown-caption">Your account</p>
       <a href="#profile" aria-current={currentPage === 'profile' ? 'page' : undefined} onClick={() => setOpen(false)}>My profile <span aria-hidden="true">&#8599;</span></a>
+      <a href="#saved-places" aria-current={currentPage === 'saved-places' ? 'page' : undefined} onClick={() => setOpen(false)}>My saved places <span aria-hidden="true">&#8599;</span></a>
       <button type="button" disabled={disabled || loggingOut} onClick={logout}>{loggingOut ? 'Logging out...' : 'Log out'}</button>
       {error && <p className="account-dropdown-error" role="alert">{error}</p>}
     </div>}
