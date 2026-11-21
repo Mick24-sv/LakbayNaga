@@ -94,7 +94,7 @@ export function createAuthController(store, access, { mailer = sendResetEmail, g
           const base = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
           try {
             if (mailer) await mailer({ email, firstName: user.firstName, link: `${base}/#reset-password?token=${encodeURIComponent(token)}` });
-          } catch (error) { console.error('Password reset email delivery failed:', error.message); }
+          } catch { console.error('Password reset email delivery failed.'); }
         }
       }
       res.json({ message: 'If an account matches that email, password reset instructions will be sent.' });

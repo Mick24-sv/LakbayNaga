@@ -11,12 +11,19 @@ export default function AccountPage({ mode = 'login', onSuccess, siteImages = {}
   const { values, update, busy, error, submit } = useAccountForm(mode, onSuccess);
   const googleButtonRef = useRef(null);
   const googleLock = useRef(false);
+  const resetLock = useRef(false);
   const onSuccessRef = useRef(onSuccess);
   onSuccessRef.current = onSuccess;
   const [googleReady, setGoogleReady] = useState(false), [googleBusy, setGoogleBusy] = useState(false), [googleError, setGoogleError] = useState('');
   const [resetMode, setResetMode] = useState(false), [resetEmail, setResetEmail] = useState(''), [resetMessage, setResetMessage] = useState('');
   const [resetBusy, setResetBusy] = useState(false), [resetError, setResetError] = useState(''), [newPassword, setNewPassword] = useState('');
   const resetToken = new URLSearchParams(window.location.hash.split('?')[1] || '').get('token') || '';
+
+  useEffect(() => {
+    if (!isReset || !resetToken) return;
+    // The reset token is needed only for this page lifetime; remove it from the address bar/history.
+    window.history.replaceState(null, '', window.location.pathname + window.location.search + '#reset-password');
+  }, [isReset, resetToken]);
 
   useEffect(() => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -67,14 +74,14 @@ export default function AccountPage({ mode = 'login', onSuccess, siteImages = {}
   }, [isReset, resetMode]);
 
   async function requestReset(event) {
-    event.preventDefault(); setResetBusy(true); setResetError(''); setResetMessage('');
+    event.preventDefault(); if (resetLock.current) return; resetLock.current = true; setResetBusy(true); setResetError(''); setResetMessage('');
     try { const result = await accountRequest('/auth/password-reset/request', { email: resetEmail }); setResetMessage(result.message); }
-    catch (err) { setResetError(err.message); } finally { setResetBusy(false); }
+    catch (err) { setResetError(err.message || 'The request could not be completed. Please try again.'); } finally { resetLock.current = false; setResetBusy(false); }
   }
   async function finishReset(event) {
-    event.preventDefault(); setResetBusy(true); setResetError('');
+    event.preventDefault(); if (resetLock.current) return; resetLock.current = true; setResetBusy(true); setResetError('');
     try { const result = await accountRequest('/auth/password-reset/complete', { token: resetToken, password: newPassword }); setResetMessage(result.message); setNewPassword(''); }
-    catch (err) { setResetError(err.message); } finally { setResetBusy(false); }
+    catch (err) { setResetError(err.message || 'The request could not be completed. Please try again.'); } finally { resetLock.current = false; setResetBusy(false); }
   }
   function field(name, label, autoComplete, maxLength) {
     return <div className="account-field"><label htmlFor={'account-' + name}>{label}</label><input id={'account-' + name} name={name} type={name === 'email' ? 'email' : 'text'} autoComplete={autoComplete} maxLength={maxLength} required value={values[name]} onChange={event => update(name, event.target.value)} /></div>;
