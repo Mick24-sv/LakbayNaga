@@ -1,5 +1,6 @@
 import { useNavigationTransitions } from './components/navigation/useNavigationTransitions.js';
 import AccountDropdown from './components/navigation/AccountDropdown.jsx';
+import { uploadedImage } from './components/media/imageUrls.js';
 import AboutPage from './pages/about/AboutPage.jsx';
 import { useEffect, useRef, useState } from 'react';
 import HomePage from './pages/home/HomePage.jsx';
@@ -165,7 +166,7 @@ export default function App() {
         {!['admin', 'login', 'register', 'reset-password'].includes(page) && <header className="site-header">
         <div className="site-header-inner">
           <a className="site-brand" href="#home">
-            {siteImages.logoImage && <img src={siteImages.logoImage} alt="" />}
+            {uploadedImage(siteImages.logoImage) && <img src={uploadedImage(siteImages.logoImage)} alt="" />}
             <div className="site-brand-copy">
               <strong>LakbayNaga</strong>
               <small>Naga City &middot; Camarines Sur, Philippines</small>

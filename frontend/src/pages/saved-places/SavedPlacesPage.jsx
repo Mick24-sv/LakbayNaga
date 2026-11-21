@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { attractionPhoto } from '../attraction-details/attractionDetailsLogic.js';
+import { attractionPhoto } from '../../components/media/imageUrls.js';
 import './SavedPlacesPage.css';
 
 const storageKey = userId => `lakbaynaga.savedPlaces.v2.${userId}`;

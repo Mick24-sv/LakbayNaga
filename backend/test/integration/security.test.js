@@ -97,3 +97,50 @@ test('SEC-01: structured and oversized input is rejected without changing stored
   assert.equal(login.status, 401);
   assert.equal(login.headers.get('set-cookie'), null);
 }));
+
+test('SEC-05: attraction image fields reject scriptable, external, traversal, and malformed URLs', () => fixture(async ({ request, actor }) => {
+  const admin = await actor('admin');
+  const base = {
+    name: 'URL security fixture', category: 'City spaces', area: 'Naga',
+    description: 'A safe test record.', cost: 0, duration: 30,
+    published: false, featured: false, imageUrl: '', galleryImages: []
+  };
+  const unsafeUrls = [
+    'javascript:alert(1)', 'data:image/svg+xml,<svg onload=alert(1)>',
+    'https://attacker.example/image.png', '//attacker.example/image.png',
+    '/api/images/not-a-valid-id', '/assets/../private.svg',
+    '/api/images/' + 'G'.repeat(32)
+  ];
+  for (const imageUrl of unsafeUrls) {
+    const response = await request('/admin/attractions', 'POST', { ...base, imageUrl }, admin.cookie);
+    assert.equal(response.status, 400, imageUrl);
+  }
+  for (const galleryImages of [['javascript:alert(1)'], ['//attacker.example/a.png'], ['/assets/placeholder.svg']]) {
+    const response = await request('/admin/attractions', 'POST', { ...base, galleryImages }, admin.cookie);
+    assert.equal(response.status, 400, JSON.stringify(galleryImages));
+  }
+  assert.equal((await request('/admin/attractions', 'GET', undefined, admin.cookie)).status, 200);
+  assert.equal((await (await request('/admin/attractions', 'GET', undefined, admin.cookie)).json()).length, 2);
+}));
+
+test('SEC-05: malicious-looking attraction names and descriptions are preserved as plain text data', () => fixture(async ({ request, actor }) => {
+  const admin = await actor('admin');
+  const payload = {
+    name: '<script>alert("name")</script>',
+    category: 'City spaces',
+    area: '<img src=x onerror=alert("area")>',
+    description: '</p><svg onload=alert("description")></svg>',
+    cost: 0, duration: 30, published: true, featured: false,
+    imageUrl: '/assets/placeholder.svg', galleryImages: []
+  };
+  const created = await request('/admin/attractions', 'POST', payload, admin.cookie);
+  assert.equal(created.status, 201);
+  const stored = await created.json();
+  assert.equal(stored.name, payload.name);
+  assert.equal(stored.description, payload.description);
+  const publicPlaces = await (await request('/attractions')).json();
+  const visible = publicPlaces.find(place => place.id === stored.id);
+  assert.equal(visible.name, payload.name);
+  assert.equal(visible.area, payload.area);
+  assert.equal(visible.description, payload.description);
+}));
