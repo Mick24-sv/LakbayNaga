@@ -1,5 +1,6 @@
 import { useNavigationTransitions } from './components/navigation/useNavigationTransitions.js';
 import AccountDropdown from './components/navigation/AccountDropdown.jsx';
+import MobileBottomNav from './components/navigation/MobileBottomNav.jsx';
 import { uploadedImage } from './components/media/imageUrls.js';
 import AboutPage from './pages/about/AboutPage.jsx';
 import { useEffect, useRef, useState } from 'react';
@@ -283,6 +284,9 @@ export default function App() {
           </div>
           <div className="site-footer-stripe" aria-hidden="true"><span /><span /><span /><span /></div>
         </footer>
+      )}
+      {(['home', 'explore', 'planner', 'trips', 'profile', 'saved-places', 'about'].includes(page) || page.startsWith('place/')) && (
+        <MobileBottomNav page={page} signedIn={Boolean(user)} />
       )}
     </div>
   );
