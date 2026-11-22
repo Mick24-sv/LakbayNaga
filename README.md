@@ -320,6 +320,25 @@ needs read/write, index-creation, and collection-removal permissions.
 
 Google local setup: set `GOOGLE_CLIENT_ID` in `backend/.env` and the same public ID as `VITE_GOOGLE_CLIENT_ID` in `frontend/.env.local`. Never put the client secret in a Vite variable. Restart Vite after changing frontend environment variables. Add the frontend origin (for example `http://localhost:5173`) to the OAuth web client authorized JavaScript origins in Google Cloud. The account screen uses the Google-rendered sign-in button; its credential is verified by the backend before a session is created.
 
+## LNK-DB-05: Index and persistence verification
+
+The MongoDB connection sets `autoIndex` to `false`, so indexes are created only by each repository's `initialize()` call at startup. Required indexes:
+- users: unique email; unique sparse `googleId`.
+- sessions: unique digest; TTL on `expiresAt`; `userId` (added in DB-05 for session revocation).
+- password resets: unique digest; TTL on `expiresAt`.
+- attractions and images: unique `id`; settings: unique `key`.
+- itineraries: `ownerId` + `createdAt` (descending).
+
+To verify indexes, duplicate rejection, query plans, and persistence after reconnection, run:
+
+```powershell
+node backend/src/scripts/check-db05-indexes.js
+```
+
+The script uses randomly named verification collections and removes them afterward. It does not edit real application records. The database user needs read/write, index-creation, and collection-removal permissions.
+
+Verification result: startup created the required indexes, duplicate constraints were checked, and repository query plans used indexes without collection scans or in-memory sorts. The run then failed after reconnect with MongoDB error 11000 because the verification script attempts to insert the same `u900@example.test` fixture again. The script removed its temporary collections; the overall DB-05 check is not yet passing until that fixture is made unique across both duplicate checks.
+
 ## LNK-SEC-01: API authorization and input-validation audit
 
 Run `node --test backend/test/integration/security.test.js` from the project root. These tests use isolated memory stores and do not write to MongoDB. They cover guest/forged-session rejection (401), ordinary-user rejection on every admin route (403), immediate role-change enforcement, saved-trip ownership (including administrator accounts), forged ownership fields, structured database-style input, and rejected requests leaving records unchanged. Search is limited to 200 characters, category to 40 characters, and planner preferences to 32 entries. This ticket verifies API authorization and validation; authentication rate limits, database configuration, and upload hardening remain separate security tickets.

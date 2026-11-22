@@ -10,7 +10,8 @@ const sessionSchema = new mongoose.Schema(
     },
     userId: {
       type: String,
-      required: true
+      required: true,
+      index: true
     },
     expiresAt: {
       type: Date,
