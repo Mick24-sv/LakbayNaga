@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ImageUpload, uploadedImage } from '../../components/media/WebsiteImages.jsx';
-import { adminRequest } from './adminLogic.js';
-import HomeHero from '../home/HomeHero.jsx';
-import '../home/HomePage.css';
+import { ImageUpload, uploadedImage } from '../../../components/media/WebsiteImages.jsx';
+import { adminRequest } from '../adminLogic.js';
+import HomeHero from '../../home/HomeHero.jsx';
+import '../../home/HomePage.css';
 import './SiteImages.css';
 
 const empty = { logo: '', hero: '', account: '' };

@@ -8,7 +8,7 @@ import HomePage from './pages/home/HomePage.jsx';
 import AttractionsPage from './pages/attractions/AttractionsPage.jsx';
 import AccountPage from './pages/authentication/AccountPage.jsx';
 import AttractionDetailsPage from './pages/attraction-details/AttractionDetailsPage.jsx';
-import AdminPage from './pages/admin/AdminPage.jsx';
+import AdminPage from './pages/admin/adminpage/AdminPage.jsx';
 import TripsPage from './pages/itineraries/TripsPage.jsx';
 import ProfilePage from './pages/profile/ProfilePage.jsx';
 import SavedPlacesPage from './pages/saved-places/SavedPlacesPage.jsx';
