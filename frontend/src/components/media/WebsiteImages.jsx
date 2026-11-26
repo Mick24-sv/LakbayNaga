@@ -1,0 +1,12 @@
+import React from 'react';
+import ImageCropper from './SiteImageCropper.jsx';
+export const uploadedImage=url=>typeof url==='string'&&/^\/api\/images\/[a-f0-9]{32}$/.test(url)?url:'';
+export function PlacePhoto({place,...props}){const src=uploadedImage(place?.imageUrl);return src?<img src={src} alt={place.name} {...props}/>:null;}
+export function ImageUpload({label,description,recommendation,cropRatio=3/2,value,onChange,disabled=false}){
+ const[source,setSource]=React.useState('');
+ React.useEffect(()=>()=>{if(source)URL.revokeObjectURL(source);},[source]);
+ const[busy,setBusy]=React.useState(false),[error,setError]=React.useState('');
+ function choose(file){if(!file)return;setError('');if(file.size>5*1024*1024){setError('Choose an image under 5 MB.');return;}setSource(URL.createObjectURL(file));}
+ async function upload(file){setError('');setBusy(true);try{const r=await fetch('/api/admin/uploads',{method:'POST',credentials:'include',headers:{'Content-Type':file.type},body:file});const data=await r.json();if(!r.ok)throw Error(data.error||'Upload failed.');await onChange(data.imageUrl);setSource('');}catch(e){setError(e.message);}finally{setBusy(false);}}
+ return <div className="image-upload"><h3>{label}</h3>{description&&<p className="upload-description">{description}</p>}{uploadedImage(value)&&<img className="cover-preview" src={value} alt={label+' preview'}/>} {!uploadedImage(value)&&<div className="upload-empty">No image selected</div>}<label>{busy?'Uploading...':'Upload image'}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={disabled||busy} onChange={e=>{choose(e.target.files?.[0]);e.target.value='';}}/></label>{recommendation&&<p className="upload-recommendation">{recommendation}</p>}<p className="small">JPEG, PNG or WebP, up to 5 MB.</p>{uploadedImage(value)&&<button className="text-button image-crop-action" type="button" disabled={disabled||busy} onClick={()=>{setError('');setSource(value);}}>Adjust crop</button>}{value&&<button className="text-button image-remove-action" type="button" disabled={disabled||busy} onClick={async()=>{setError('');setBusy(true);try{await onChange('');}catch(e){setError(e.message);}finally{setBusy(false);}}}>Remove image</button>}{source&&<ImageCropper source={source} ratio={cropRatio} busy={busy} uploadError={error} onCancel={()=>setSource('')} onApply={upload}/>} {error&&<p role="alert" className="alert">{error}</p>}</div>;
+}

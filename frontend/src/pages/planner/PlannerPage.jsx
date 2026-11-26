@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   BUDGET_MAX,
   BUDGET_SLIDER_MAX,
@@ -14,6 +14,11 @@ import './PlannerPage.css';
 
 
 export default function PlannerPage({ onNeedLogin }) {
+  const [tripName, setTripName] = useState('My Naga trip');
+  const [saveBusy, setSaveBusy] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
+  const [saveError, setSaveError] = useState('');
+  const saveLock = useRef(false);
   const {
     values,
     update,
@@ -22,11 +27,54 @@ export default function PlannerPage({ onNeedLogin }) {
     result,
     busy,
     error,
+    savedTrip,
+    acceptSavedTrip,
   } = usePlannerForm();
+
+  useEffect(() => {
+    if (savedTrip?.name) setTripName(savedTrip.name);
+  }, [savedTrip?.id]);
 
   function handleSubmit(event) {
     event.preventDefault();
+    if (saveLock.current) return;
+    setSaveMessage('');
+    setSaveError('');
     generate(onNeedLogin);
+  }
+
+  async function saveItinerary(event) {
+    event.preventDefault();
+    if (saveLock.current || busy || !result?.stops?.length) return;
+    saveLock.current = true;
+    setSaveBusy(true);
+    setSaveMessage('');
+    setSaveError('');
+    try {
+      const response = await fetch('/api/itineraries' + (savedTrip?.id ? '/' + encodeURIComponent(savedTrip.id) : ''), {
+        method: savedTrip?.id ? 'PUT' : 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: tripName.trim(), settings: result.settings }),
+      });
+      const data = response.status === 204 ? null : await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || (response.status === 401 ? 'Please log in to save this itinerary.' : 'Could not save your itinerary.'));
+      }
+      if (!data?.id || !data.plan?.settings || !Array.isArray(data.plan.stops) || !Array.isArray(data.plan.days)) {
+        throw new Error('The server did not return a saved itinerary.');
+      }
+      acceptSavedTrip(data);
+      setTripName(data.name);
+      setSaveMessage(savedTrip?.id ? 'Your itinerary was updated.' : 'Your itinerary was saved.');
+    } catch (requestError) {
+      setSaveError(requestError instanceof TypeError
+        ? 'Unable to connect. Check your connection and try again.'
+        : requestError.message);
+    } finally {
+      saveLock.current = false;
+      setSaveBusy(false);
+    }
   }
 
   const days    = Math.max(1, parseInt(values.days)   || 1);
@@ -46,6 +94,7 @@ export default function PlannerPage({ onNeedLogin }) {
         {/* ── LEFT: form ────────────────────────────────────────────────── */}
         <div className="planner-left">
           <form onSubmit={handleSubmit} noValidate>
+            <fieldset className="planner-settings-fields" aria-label="Trip settings" disabled={saveBusy || busy}>
 
             {/* Budget & dates */}
             <section className="planner-card" aria-labelledby="planner-budget-heading">
@@ -226,6 +275,7 @@ export default function PlannerPage({ onNeedLogin }) {
             >
               {busy ? 'Generating…' : '+ Generate Itinerary'}
             </button>
+            </fieldset>
           </form>
         </div>
 
@@ -235,7 +285,15 @@ export default function PlannerPage({ onNeedLogin }) {
             <TripPreview days={days} people={people} budget={budget} />
           ) : (
             <ItineraryResults
+              key={JSON.stringify(result)}
               result={result}
+              saveItinerary={saveItinerary}
+              tripName={tripName}
+              setTripName={name => { setTripName(name); setSaveMessage(''); setSaveError(''); }}
+              saveBusy={saveBusy}
+              savedTrip={savedTrip}
+              saveMessage={saveMessage}
+              saveError={saveError}
             />
           )}
         </div>
@@ -271,7 +329,7 @@ function TripPreview({ days, people, budget }) {
 
 // ── Results panel (after generation) ─────────────────────────────────────────
 
-function ItineraryResults({ result }) {
+function ItineraryResults({ result, saveItinerary, tripName, setTripName, saveBusy, savedTrip, saveMessage, saveError }) {
   const [activeDay, setActiveDay] = useState(1);
 
   const { days, totals, notice, settings } = result;
@@ -383,6 +441,19 @@ function ItineraryResults({ result }) {
       {/* Backend notice */}
       {notice && (
         <p className="planner-notice">{notice}</p>
+      )}
+
+      {hasStops && (
+        <form className="planner-save-form" onSubmit={saveItinerary}>
+          <label htmlFor="planner-trip-name">Itinerary name</label>
+          <input id="planner-trip-name" type="text" maxLength="100" required
+            value={tripName} disabled={saveBusy} onChange={event => setTripName(event.target.value)} />
+          <button type="submit" disabled={saveBusy}>
+            {saveBusy ? 'Saving…' : savedTrip?.id ? 'Update saved itinerary' : 'Save itinerary'}
+          </button>
+          {saveMessage && <p role="status">{saveMessage} <a href="#trips">View saved itineraries</a></p>}
+          {saveError && <p role="alert">{saveError}</p>}
+        </form>
       )}
     </div>
   );
