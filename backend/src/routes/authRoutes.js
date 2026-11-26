@@ -1,12 +1,13 @@
 import { Router } from 'express';
 import { createAuthController } from '../controllers/authController.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
+import { authRateLimit } from '../middleware/authRateLimit.js';
 
 export function createAuthRoutes(store, access, options) {
   const router = Router();
   const controller = createAuthController(store, access, options);
-  router.post('/auth/register', asyncHandler(controller.register));
-  router.post('/auth/login', asyncHandler(controller.login));
+  router.post('/auth/register', authRateLimit({ limit: 5 }), asyncHandler(controller.register));
+  router.post('/auth/login', authRateLimit({ limit: 10 }), asyncHandler(controller.login));
   router.post('/auth/google', asyncHandler(controller.googleLogin));
   router.post('/auth/password-reset/request', asyncHandler(controller.requestPasswordReset));
   router.post('/auth/password-reset/complete', asyncHandler(controller.completePasswordReset));
