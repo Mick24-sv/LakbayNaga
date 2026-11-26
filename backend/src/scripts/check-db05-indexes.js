@@ -93,14 +93,34 @@ async function assertIndexes(label) {
 
 async function assertDuplicatesRejected(label) {
   const rejected = code => error => error.code === code;
+
   for (const name of ['users', 'sessions', 'resets', 'attractions', 'images', 'settings']) {
-    await assert.rejects(models[name].create(sample[name](0)), rejected(11000), label + ' ' + name + ': duplicate was accepted');
+    await assert.rejects(
+      models[name].create(sample[name](0)),
+      rejected(11000),
+      label + ' ' + name + ': duplicate was accepted'
+    );
   }
-  const other = { ...sample.users(900), googleId: 'g-1' };
+
+  // Use unique values on every invocation so the test works
+  // both before and after reconnecting.
+  const unique = randomBytes(8).toString('hex');
+
+  const other = {
+    ...sample.users(900),
+    email: 'google-' + unique + '@example.test',
+    googleId: 'g-' + unique
+  };
+
   await models.users.create(other);
+
   await assert.rejects(
-    models.users.create({ ...sample.users(901), googleId: 'g-1' }),
-    rejected(11000), label + ' users: duplicate Google ID was accepted'
+    models.users.create({
+      ...sample.users(901),
+      googleId: 'g-' + unique
+    }),
+    rejected(11000),
+    label + ' users: duplicate Google ID was accepted'
   );
 }
 

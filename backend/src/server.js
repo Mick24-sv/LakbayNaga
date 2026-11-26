@@ -1,7 +1,8 @@
 import dotenv from 'dotenv';
 import {
   connectDatabase,
-  disconnectDatabase
+  disconnectDatabase,
+  requireDatabaseInProduction
 } from './config/database.js';
 import { makeStore } from './repositories/memoryStore.js';
 import { makeMongoAuthStore } from './repositories/mongoAuthStore.js';
@@ -18,6 +19,7 @@ dotenv.config({
 
 
 try {
+  requireDatabaseInProduction();
   const persistent = Boolean(process.env.MONGODB_URI);
 
 
@@ -95,7 +97,7 @@ try {
 } catch (error) {
   console.error('Backend startup failed. Error type: ' + error.name);
   console.error(
-    'Check database credentials, network access, and collection indexes.'
+    'Check that MONGODB_URI is set, database credentials, network access, and collection indexes.'
   );
 
 
