@@ -1,15 +1,15 @@
-import ConfirmDialog from '../../components/dialogs/ConfirmDialog.jsx';
-import AccountDropdown from '../../components/navigation/AccountDropdown.jsx';
+import ConfirmDialog from '../../../components/dialogs/ConfirmDialog.jsx';
+import AccountDropdown from '../../../components/navigation/AccountDropdown.jsx';
 import { useEffect, useRef, useState } from 'react';
-import RouteMap from '../../components/maps/RouteMap.jsx';
-import SiteImages from './SiteImages.jsx';
-import AttractionPhotos from './AttractionPhotos.jsx';
-import { uploadedImage } from '../../components/media/imageUrls.js';
+import RouteMap from '../../../components/maps/RouteMap.jsx';
+import SiteImages from '../siteimagespage/SiteImages.jsx';
+import AttractionPhotos from '../AttractionPhotos.jsx';
+import { uploadedImage } from '../../../components/media/imageUrls.js';
 import {
   adminCategories,
   adminRequest,
   validateAttractionForm,
-} from './adminLogic.js';
+} from '../adminLogic.js';
 import './AdminPage.css';
 
 /* ── helpers ─────────────────────────────────────────────── */
