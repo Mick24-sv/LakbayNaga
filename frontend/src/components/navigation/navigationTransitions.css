@@ -1,0 +1,23 @@
+﻿.site-page-content { min-width: 0; view-transition-name: page-content; transform-origin: center top; }
+.site-header { position: relative; z-index: 100; overflow: visible; view-transition-name: website-header; }
+.site-footer { view-transition-name: website-footer; }
+::view-transition-group(*) { animation-duration: 550ms; animation-timing-function: cubic-bezier(.2, .75, .25, 1); }
+::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+::view-transition-old(page-content) { transform-origin: center top; animation: navigation-out 240ms cubic-bezier(.2, .75, .25, 1) both; }
+::view-transition-new(page-content) { transform-origin: center top; animation: navigation-in 550ms cubic-bezier(.2, .75, .25, 1) both; }
+::view-transition-group(website-header) { z-index: 100; }
+::view-transition-group(attraction-card) { z-index: 2; overflow: clip; border-radius: 14px; }
+::view-transition-old(attraction-card), ::view-transition-new(attraction-card) { height: 100%; object-fit: cover; object-position: top left; }
+::view-transition-old(website-header), ::view-transition-new(website-header), ::view-transition-old(website-footer), ::view-transition-new(website-footer) { animation: none; }
+@keyframes navigation-out { to { opacity: 0; transform: translateY(-8px) scale(1.015); } }
+@keyframes navigation-in { from { opacity: 0; transform: translateY(18px) scale(.965); } to { opacity: 1; transform: none; } }
+:root[data-navigation-direction="back"]::view-transition-new(page-content) { animation-name: navigation-return; }
+@keyframes navigation-return { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+:root[data-navigation-direction="back"]::view-transition-old(page-content) { animation: navigation-back-out 200ms ease-out both; }
+@keyframes navigation-back-out { to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; } }
+
+.site-header nav > a, .site-footer nav > a { transition: color 180ms ease, background-color 180ms ease, transform 180ms ease; }
+.site-header nav > a:hover, .site-footer nav > a:hover { transform: translateY(-2px); }
+.site-header nav > a:active, .site-footer nav > a:active { transform: scale(.94); }
+@media (prefers-reduced-motion: reduce) { .site-header nav > a, .site-footer nav > a { transition: none; } .site-header nav > a:hover, .site-footer nav > a:hover, .site-header nav > a:active, .site-footer nav > a:active { transform: none; } }

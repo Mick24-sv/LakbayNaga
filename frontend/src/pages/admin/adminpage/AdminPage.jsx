@@ -1,10 +1,15 @@
+import ConfirmDialog from '../../../components/dialogs/ConfirmDialog.jsx';
+import AccountDropdown from '../../../components/navigation/AccountDropdown.jsx';
 import { useEffect, useRef, useState } from 'react';
-import RouteMap from '../../components/maps/RouteMap.jsx';
+import RouteMap from '../../../components/maps/RouteMap.jsx';
+import SiteImages from '../siteimagespage/SiteImages.jsx';
+import AttractionPhotos from '../AttractionPhotos.jsx';
+import { uploadedImage } from '../../../components/media/imageUrls.js';
 import {
   adminCategories,
   adminRequest,
   validateAttractionForm,
-} from './adminLogic.js';
+} from '../adminLogic.js';
 import './AdminPage.css';
 
 /* ── helpers ─────────────────────────────────────────────── */
@@ -33,6 +38,9 @@ const EMPTY = {
   openingHours: '',
   featured: false,
   published: false,
+  imageUrl: '',
+  galleryImages: [],
+  photoCredit: '',
   lat: '',
   lng: '',
 };
@@ -40,11 +48,13 @@ const EMPTY = {
 const NAV = [
   ['dashboard',    'Dashboard'],
   ['attractions',  'Attractions'],
+  ['images',       'Website images'],
 ];
 
 /* ── component ───────────────────────────────────────────── */
-export default function Admin({ user, checkingSession, onChanged, onLogout }) {
+export default function Admin({ user, checkingSession, onChanged, onLogout, siteImages = {} }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [archiveTarget, setArchiveTarget] = useState(null);
   const [section,  setSection]  = useState('dashboard');
   const [places,   setPlaces]   = useState([]);
   const [edit,     setEdit]     = useState(null);
@@ -159,7 +169,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
 
   async function archive(a) {
     if (saveLock.current) return;
-    if (!a.archived && !window.confirm('Archive this attraction? It will disappear from public browsing.')) return;
+    if (!a.archived) { setArchiveTarget(a); return; }
     await mutate(
       '/admin/attractions/' + encodeURIComponent(a.id) + '/archive',
       { archived: !a.archived },
@@ -198,10 +208,25 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
   /* ── render ───────────────────────────────────────────── */
   return (
     <div className={'admin-shell admin-workspace' + (menuOpen ? ' menu-open' : '')}>
+      {archiveTarget && <ConfirmDialog
+        title="Archive this attraction?"
+        description="It will be hidden from public browsing and trip planning. You can restore it later from the archived attractions."
+        name={archiveTarget.name}
+        confirmLabel="Archive attraction"
+        busyLabel="Archiving..."
+        busy={busy}
+        onCancel={() => { if (!saveLock.current) setArchiveTarget(null); }}
+        onConfirm={async () => {
+          if (saveLock.current) return;
+          await mutate('/admin/attractions/' + encodeURIComponent(archiveTarget.id) + '/archive', { archived: true }, 'PATCH', 'Attraction archived.');
+          setArchiveTarget(null);
+        }}
+      />}
 
       {/* ── sidebar ── */}
       <aside className="admin-sidebar" id="admin-navigation">
         <a className="admin-wordmark" href="#home">
+          {uploadedImage(siteImages.logoImage) && <img src={uploadedImage(siteImages.logoImage)} alt="" />}
           <div>
             LakbayNaga
             <span>Administration</span>
@@ -244,33 +269,16 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
             {menuOpen ? 'Close menu' : 'Menu'}
           </button>
 
-          <span className="admin-topbar-label">Admin workspace</span>
+          <span className="admin-topbar-label">{edit ? (edit.id ? 'Edit attraction' : 'Add attraction') : NAV.find(([key]) => key === section)?.[1] || 'Dashboard'}</span>
 
           <div className="admin-topbar-actions">
             <a href="#home">View website &#8599;</a>
 
-            <span className="admin-account">
-              <span className="admin-avatar" aria-hidden="true">
-                {(user.firstName || 'A').slice(0, 1).toUpperCase()}
-              </span>
-              <span>
-                {user.firstName || 'Administrator'}
-                <small>Administrator</small>
-              </span>
-            </span>
-
-            <button
-              type="button"
-              className="text-button"
-              disabled={busy}
-              onClick={async () => {
-                setError('');
-                try { await onLogout?.(); }
-                catch (err) { setError(err.message); }
-              }}
-            >
-              Log out
-            </button>
+            <AccountDropdown user={user} currentPage={section + (edit ? '-editor' : '')} disabled={busy} onLogout={async () => {
+              setError('');
+              try { await onLogout?.(); }
+              catch (err) { setError(err.message); throw err; }
+            }} />
           </div>
         </div>
 
@@ -285,6 +293,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
                 {edit
                   ? (edit.id ? 'Edit attraction' : 'Add attraction')
                   : section === 'attractions' ? 'Attractions'
+                  : section === 'images' ? 'Website images'
                   : 'Dashboard'}
               </h1>
               <p className="admin-description">
@@ -292,6 +301,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
                   ? 'Keep place details and visitor information up to date.'
                   : section === 'attractions'
                   ? 'Manage the places visitors can discover and plan to visit.'
+                  : section === 'images' ? 'Customize the pictures visitors see across your website.'
                   : 'An overview of your attractions and publishing status.'}
               </p>
             </div>
@@ -443,6 +453,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
 
               {/* right column (sidebar) */}
               <aside>
+                <AttractionPhotos value={edit} onChange={value => setEdit(current => ({ ...current, ...value }))} disabled={busy} onError={setError} />
                 <div className="panel">
                   <label className="checkbox">
                     <input disabled={busy || Boolean(edit.archived)}
@@ -485,6 +496,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
           ) : (
             /* ── dashboard / attractions list ── */
             <>
+              {section === 'images' ? <SiteImages onMessage={setMessage} onError={setError} /> : <>
               {section === 'dashboard' && (
                 <div className="admin-stats">
                   {[
@@ -665,6 +677,7 @@ export default function Admin({ user, checkingSession, onChanged, onLogout }) {
                   )}
                 </ul>
               </div>
+              </>}
             </>
           )}
         </div>

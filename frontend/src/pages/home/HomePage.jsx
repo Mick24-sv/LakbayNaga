@@ -1,5 +1,7 @@
+import AttractionStoryCard from '../../components/attractions/AttractionStoryCard.jsx';
 import { useState } from 'react';
-import { formatFee, useHomeAttractions } from './homeLogic.js';
+import { useHomeAttractions } from './homeLogic.js';
+import HomeHero from './HomeHero.jsx';
 import './HomePage.css';
 
 const interests = [
@@ -11,12 +13,12 @@ const interests = [
 ];
 
 const benefits = [
-  ['Discover places', 'Explore local heritage and city favorites.'],
-  ['Know the costs', 'Prepare with estimated entrance fees.'],
-  ['Plan your days', 'Find places that match your interests.']
+  ['Discover places', 'Heritage, faith, and everyday favorites.', '✦'],
+  ['Know the costs', 'Prepare for your day with estimates.', '₱'],
+  ['Plan your days', 'A day-by-day plan that fits your budget.', '▦']
 ];
 
-export default function HomePage() {
+export default function HomePage({ siteImages = {} }) {
   const [query, setQuery] = useState('');
   const [showAll, setShowAll] = useState(false);
 
@@ -54,47 +56,15 @@ export default function HomePage() {
   }
 
   return (
-    <div className="home-page">
-      <section className="home-hero" aria-labelledby="home-title">
-        <div className="home-container home-hero-content">
-          <span className="home-badge">
-            Heritage, faith, and local discoveries
-          </span>
-
-          <h1 id="home-title">
-            A welcoming city,
-            <br />
-            rooted in local character.
-          </h1>
-
-          <p>Discover Naga and find places for your next visit.</p>
-
-          <form className="home-search" onSubmit={submitSearch}>
-            <label className="home-sr-only" htmlFor="home-search">
-              Search attractions
-            </label>
-
-            <input
-              id="home-search"
-              type="search"
-              placeholder="Search basilica, plazas, landmarks..."
-              value={query}
-              onChange={event => setQuery(event.target.value)}
-            />
-
-            <button type="submit" className="home-button">
-              Search
-            </button>
-          </form>
-        </div>
-      </section>
+    <div className="home-page" data-navigation-loading={loading}>
+      <HomeHero siteImages={siteImages} query={query} onQueryChange={setQuery} onSubmit={submitSearch} />
 
       <div className="home-container home-content">
         <section className="home-benefits" aria-label="Why explore Naga">
-          {benefits.map(([title, description], index) => (
+          {benefits.map(([title, description, icon], index) => (
             <article key={title}>
-              <span className="home-benefit-number" aria-hidden="true">
-                {index + 1}
+              <span className={`home-benefit-icon home-benefit-icon-${index + 1}`} aria-hidden="true">
+                {icon}
               </span>
 
               <div>
@@ -133,13 +103,13 @@ export default function HomePage() {
               <h2 id="places-title">Places worth the trip</h2>
             </div>
 
-            {!showAll && places.length > 3 && (
+            {places.length > 3 && (
               <button
                 type="button"
                 className="home-secondary-button"
-                onClick={() => setShowAll(true)}
+                onClick={() => setShowAll(current => !current)}
               >
-                Show all places
+                {showAll ? 'Show fewer places' : 'Show all places'}
               </button>
             )}
           </div>
@@ -179,31 +149,10 @@ export default function HomePage() {
             <>
               <div className="home-place-grid">
                 {visiblePlaces.map(place => (
-                  <article className="home-place-card" key={place.id}>
-                    <span className="home-category">{place.category}</span>
-
-                    <h3>{place.name}</h3>
-                    <p className="home-location">
-                      {place.area || 'Naga City'}
-                    </p>
-                    <p>{place.description}</p>
-
-                    <div className="home-place-meta">
-                      <span>
-                        {place.duration
-                          ? place.duration + ' minute visit'
-                          : 'Visit duration varies'}
-                      </span>
-                      <strong>{formatFee(place.cost)}</strong>
-                    </div>
-                  </article>
+                  <AttractionStoryCard key={place.id} place={place} />
                 ))}
               </div>
 
-              <p className="home-fee-note">
-                Fees and visit durations are estimates. Confirm current
-                information with the attraction before visiting.
-              </p>
             </>
           )}
         </section>

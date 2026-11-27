@@ -1,4 +1,6 @@
 import express from 'express';
+import { makeImageRepository } from './repositories/imageRepository.js';
+import { makeItineraryRepository } from './repositories/itineraryRepository.js';
 import { makeStore } from './repositories/memoryStore.js';
 import { makeAttractionRepository } from './repositories/attractionRepository.js';
 import { auth } from './middleware/authMiddleware.js';
@@ -9,11 +11,20 @@ import {
 import { createAuthRoutes } from './routes/authRoutes.js';
 import { createAttractionRoutes } from './routes/attractionRoutes.js';
 import { createItineraryRoutes } from './routes/itineraryRoutes.js';
+import { makeSettingsRepository } from './repositories/settingsRepository.js';
+import { createSettingsRoutes } from './routes/settingsRoutes.js';
+import { createImageRoutes } from './routes/imageRoutes.js';
 
 
 export function createApp({
   store = makeStore(),
   attractionData = [],
+  itineraryRepository = makeItineraryRepository(),
+  settingsRepository = makeSettingsRepository(),
+  imageRepository = makeImageRepository(),
+  mailer,
+  google,
+  readiness = () => true,
   attractionRepository = makeAttractionRepository({
     initialData: attractionData
   })
@@ -23,6 +34,7 @@ export function createApp({
 
 
   app.disable('x-powered-by');
+  app.use('/api', (_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
   app.use(express.json({ limit: '1mb' }));
 
 
@@ -36,7 +48,14 @@ export function createApp({
   });
 
 
-  app.use('/api', createAuthRoutes(store, access));
+  app.get('/api/ready', async (_req, res) => {
+    try {
+      const ready = await readiness();
+      res.status(ready ? 200 : 503).json({ status: ready ? 'ok' : 'unavailable' });
+    } catch { res.status(503).json({ status: 'unavailable' }); }
+  });
+
+  app.use('/api', createAuthRoutes(store, access, { mailer, google }));
 
 
   app.use(
@@ -45,7 +64,10 @@ export function createApp({
   );
 
 
-  app.use('/api', createItineraryRoutes(attractionRepository, access));
+  app.use('/api', createItineraryRoutes(attractionRepository, access, itineraryRepository));
+
+  app.use('/api', createSettingsRoutes(settingsRepository, access, imageRepository));
+  app.use('/api', createImageRoutes(access, imageRepository));
 
   app.use('/api', notFound);
   app.use(errorHandler);

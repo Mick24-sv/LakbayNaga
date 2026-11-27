@@ -36,6 +36,19 @@ const BUDGET_MAX = 1000000;
 const BUDGET_SLIDER_MAX = 50000;
 
 const PENDING_KEY = 'lakbaynaga.planner.pending';
+const EDIT_KEY = 'lakbaynaga.itinerary.edit';
+
+function loadSavedTrip() {
+  try {
+    const raw = sessionStorage.getItem(EDIT_KEY);
+    if (!raw) return null;
+    const trip = JSON.parse(raw);
+    if (typeof trip?.id !== 'string' || !trip.plan?.settings ||
+        !Array.isArray(trip.plan.stops) || !Array.isArray(trip.plan.days) ||
+        !trip.plan.days.length || !trip.plan.totals) return null;
+    return trip;
+  } catch { return null; }
+}
 
 export function savePendingForm(values) {
   try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(values)); } catch { /* ignore */ }
@@ -94,18 +107,93 @@ export function minutesToTime(minutes, startHour = 9) {
   return `${hour}:${String(m).padStart(2, '0')} ${period}`;
 }
 
+function distanceBetween(a, b) {
+  if (![a.lat, a.lng, b.lat, b.lng].every(Number.isFinite)) return 0;
+  const radians = value => value * Math.PI / 180;
+  const dlat = radians(b.lat - a.lat);
+  const dlng = radians(b.lng - a.lng);
+  const h = Math.sin(dlat / 2) ** 2 + Math.cos(radians(a.lat)) * Math.cos(radians(b.lat)) * Math.sin(dlng / 2) ** 2;
+  return 6371 * 2 * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+function withoutStop(plan, stopId) {
+  const transfer = { walk: 45, public: 30, private: 20 }[plan.settings.transport] ?? 30;
+  const fare = { walk: 0, public: 50, private: 100 }[plan.settings.transport] ?? 50;
+  const people = plan.settings.people;
+  let minutes = 0;
+  let distanceKm = 0;
+  const days = plan.days.map(day => {
+    let elapsed = 0;
+    let dayDistance = 0;
+    const stops = day.stops.filter(stop => stop.id !== stopId).map((stop, index, list) => {
+      if (index) {
+        elapsed += transfer;
+        dayDistance += distanceBetween(list[index - 1], stop);
+      }
+      const next = { ...stop, startMinutes: elapsed };
+      elapsed += stop.duration;
+      return next;
+    });
+    const dayMinutes = stops.reduce((sum, stop) => sum + stop.duration, 0) + Math.max(0, stops.length - 1) * transfer;
+    minutes += dayMinutes;
+    distanceKm += dayDistance;
+    return { ...day, stops, minutes: dayMinutes, distanceKm: Math.round(dayDistance * 10) / 10 };
+  });
+  const stops = days.flatMap(day => day.stops);
+  const excludedPlaceIds = [...new Set([...(plan.settings.excludedPlaceIds || []), stopId])];
+  const admissions = stops.reduce((sum, stop) => sum + Math.round(stop.cost * 100) * people, 0) / 100;
+  const transportAllowance = stops.length * fare * people;
+  const total = admissions + transportAllowance + plan.totals.food + plan.totals.lodging;
+  return {
+    ...plan,
+    settings: { ...plan.settings, excludedPlaceIds },
+    days,
+    stops,
+    totals: {
+      ...plan.totals,
+      admissions,
+      transportAllowance,
+      total,
+      remaining: plan.settings.budget - total,
+      minutes,
+      distanceKm: Math.round(distanceKm * 10) / 10,
+    },
+  };
+}
+
 export { BUDGET_MAX, BUDGET_SLIDER_MAX };
 
 export function usePlannerForm() {
-  const [values, setValues] = useState(() => loadPendingForm() ?? DEFAULT_FORM);
-  const [result, setResult] = useState(null);
+  const [initial] = useState(() => {
+    const trip = loadSavedTrip();
+    const settings = trip?.plan?.settings;
+    return {
+      trip,
+      values: settings ? {
+        ...DEFAULT_FORM,
+        budget: String(settings.budget),
+        days: String(settings.days),
+        people: String(settings.people),
+        hours: String(settings.hours),
+        pace: settings.pace,
+        transport: settings.transport,
+        startDate: settings.startDate || '',
+        foodPerPersonDay: String(settings.foodPerPersonDay),
+        lodgingPerNight: String(settings.lodgingPerNight),
+        preferences: settings.preferences || [],
+      } : loadPendingForm() ?? DEFAULT_FORM,
+    };
+  });
+  const [savedTrip, setSavedTrip] = useState(initial.trip);
+  const [values, setValues] = useState(initial.values);
+  const [result, setResult] = useState(initial.trip?.plan ?? null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const submitting = useRef(false);
   const revision = useRef(0);
 
   useEffect(() => {
-    try { sessionStorage.removeItem(PENDING_KEY); } catch { /* unavailable storage */ }
+    try { sessionStorage.removeItem(PENDING_KEY); sessionStorage.removeItem(EDIT_KEY); } catch { /* unavailable storage */ }
     return () => { revision.current += 1; };
   }, []);
 
@@ -176,5 +264,14 @@ export function usePlannerForm() {
     }
   }
 
-  return { values, update, togglePreference, generate, result, busy, error };
+  function acceptSavedTrip(trip) {
+    setSavedTrip(trip);
+    setResult(trip.plan);
+  }
+
+  function removeStop(stopId) {
+    setResult(current => current ? withoutStop(current, stopId) : current);
+  }
+
+  return { values, update, togglePreference, generate, result, busy, error, savedTrip, acceptSavedTrip, removeStop };
 }

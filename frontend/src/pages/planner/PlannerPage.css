@@ -401,6 +401,30 @@
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  flex: 1;
+}
+
+.planner-stop-remove {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border: 1px solid #d7e2ec;
+  border-radius: 6px;
+  background: #fff;
+  color: #53677b;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.planner-stop-remove:hover {
+  border-color: #d4464a;
+  background: #fff5f5;
+  color: #a82e32;
+}
+
+.planner-stop-remove:focus-visible {
+  outline: 3px solid #5bade7;
+  outline-offset: 2px;
 }
 
 .planner-stop-time {
@@ -649,3 +673,15 @@
   font: 700 12px/1 system-ui, sans-serif;
   box-shadow: 0 1px 4px #0005;
 }
+.planner-save-form { display: grid; gap: 10px; min-width: 0; margin: 18px 0 0; padding: 20px; border-top: 1px solid #e7edf4; background: #f8fafc; }
+.planner-save-form label { color: #40516a; font-size: 13px; font-weight: 600; }
+.planner-save-form input { width: 100%; min-width: 0; min-height: 44px; padding: 10px 12px; border: 1px solid #cdd8e6; border-radius: 6px; background: white; color: #243746; font: inherit; font-size: 16px; line-height: 22px; }
+.planner-save-form button { min-height: 42px; padding: 10px 14px; border: 0; border-radius: 6px; background: #203c62; color: white; font-weight: 600; cursor: pointer; }
+.planner-save-form button:disabled { opacity: .65; cursor: wait; }
+.planner-save-form p { margin: 0; color: #52647a; font-size: 13px; line-height: 20px; }
+.planner-save-form p[role="alert"] { color: #922d37; }
+.planner-save-form a { color: #1255cf; }
+
+/* Disable settings during a save so its response cannot overwrite newer edits. */
+.planner-settings-fields { display: contents; border: 0; min-width: 0; margin: 0; padding: 0; }
+.planner-settings-fields:disabled input, .planner-settings-fields:disabled select { opacity: .75; }

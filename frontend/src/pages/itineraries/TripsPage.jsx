@@ -1,166 +1,239 @@
-import { useState } from 'react';
+import ConfirmDialog from '../../components/dialogs/ConfirmDialog.jsx';
+import EditTripDialog from './EditTripDialog.jsx';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { formatPHP } from '../planner/plannerLogic.js';
+import { attractionPhoto } from '../../components/media/imageUrls.js';
 import './TripsPage.css';
 
-/* ─── Helpers ───────────────────────────────────────────────────── */
+async function itineraryRequest(path, options = {}) {
+  const response = await fetch('/api/itineraries' + path, {
+    credentials: 'include',
+    ...options,
+    headers: {
+      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+      ...options.headers,
+    },
+  });
+  if (response.status === 204) return null;
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    if (response.status === 401) throw new Error('Your session expired. Please log in again.');
+    throw new Error(data.error || 'Could not complete the itinerary request.');
+  }
+  return data;
+}
+
+function tripDate(plan) {
+  const startDate = plan?.settings?.startDate;
+  if (!startDate) return 'Dates not selected';
+  const date = new Date(startDate + 'T00:00:00');
+  return Number.isNaN(date.getTime())
+    ? 'Dates not selected'
+    : date.toLocaleDateString('en-CA');
+}
+
 function EmptyState() {
   return (
-    <div className="trips-empty">
-      <div className="trips-empty-icon" aria-hidden="true">🗺️</div>
-      <h2>No trips yet</h2>
-      <p>Plan your first Naga adventure by adding attractions below.</p>
-    </div>
+    <section className="trips-empty" aria-labelledby="trips-empty-heading">
+      <h2 id="trips-empty-heading">No saved itineraries yet</h2>
+      <p>Generate a trip in the itinerary planner, then save it here.</p>
+      <a className="trips-empty-link" href="#planner">Plan a trip</a>
+    </section>
   );
 }
 
-/* ─── Component ─────────────────────────────────────────────────── */
-export default function TripsPage({ user }) {
+export default function TripsPage() {
   const [trips, setTrips] = useState([]);
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ title: '', date: '', notes: '' });
-  const [expandedId, setExpandedId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [pendingDelete, setPendingDelete] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [openingId, setOpeningId] = useState('');
+  const [editTarget, setEditTarget] = useState(null);
+  const [savingEditId, setSavingEditId] = useState('');
+  const [editError, setEditError] = useState('');
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [message, setMessage] = useState('');
+  const mutationLock = useRef(false);
+  const loadingRequest = useRef(null);
 
-  function handleAdd(e) {
-    e.preventDefault();
-    if (!form.title.trim()) return;
-    setTrips(prev => [
-      ...prev,
-      { id: Date.now(), ...form, attractions: [] },
-    ]);
-    setForm({ title: '', date: '', notes: '' });
-    setShowForm(false);
-  }
 
-  function handleDelete(id) {
-    if (window.confirm('Remove this trip?')) {
-      setTrips(prev => prev.filter(t => t.id !== id));
-      if (expandedId === id) setExpandedId(null);
+  const loadTrips = useCallback(async () => {
+    loadingRequest.current?.abort();
+    const controller = new AbortController();
+    loadingRequest.current = controller;
+    setLoading(true);
+    setError('');
+    setLoadFailed(false);
+    try {
+      const rows = await itineraryRequest('', { signal: controller.signal });
+      if (!Array.isArray(rows)) throw new Error('The server did not return a saved-itinerary list.');
+      if (controller.signal.aborted) return;
+      setTrips(rows);
+    } catch (requestError) {
+      if (controller.signal.aborted) return;
+      setLoadFailed(true);
+      setError(requestError instanceof TypeError
+        ? 'Unable to connect. Check your connection and try again.'
+        : requestError.message);
+    } finally {
+      if (!controller.signal.aborted) setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadTrips(); return () => loadingRequest.current?.abort(); }, [loadTrips]);
+
+  async function deleteTrip() {
+    const trip = deleteTarget;
+    if (!trip) return;
+    if (mutationLock.current || loading) return;
+    mutationLock.current = true;
+    setMessage('');
+    setPendingDelete(trip.id);
+    setError('');
+    try {
+      await itineraryRequest('/' + encodeURIComponent(trip.id), { method: 'DELETE' });
+      setTrips(current => current.filter(row => row.id !== trip.id));
+      setMessage('Itinerary deleted.');
+      setDeleteTarget(null);
+    } catch (requestError) {
+      setError(requestError instanceof TypeError
+        ? 'Unable to connect. Check your connection and try again.'
+        : requestError.message);
+    } finally {
+      mutationLock.current = false;
+      setPendingDelete('');
     }
   }
 
-  function toggleExpand(id) {
-    setExpandedId(prev => (prev === id ? null : id));
+
+
+  async function openTrip(trip) {
+    if (mutationLock.current || loading) return;
+    mutationLock.current = true;
+    setOpeningId(trip.id);
+    setError('');
+    setMessage('');
+    try {
+      // Load the authoritative owned record; the list may be stale.
+      const saved = await itineraryRequest('/' + encodeURIComponent(trip.id));
+      if (!saved?.id || !saved?.plan?.settings) throw new Error('This saved itinerary could not be opened for editing.');
+      setEditError('');
+      setEditTarget(saved);
+    } catch (requestError) {
+      setError(requestError instanceof TypeError
+        ? 'Unable to connect. Check your connection and try again.'
+        : requestError.message);
+    } finally {
+      mutationLock.current = false;
+      setOpeningId('');
+    }
+  }
+
+  async function saveEditedTrip({ name, settings }) {
+    const trip = editTarget;
+    if (!trip || mutationLock.current) return;
+    mutationLock.current = true;
+    setSavingEditId(trip.id);
+    setEditError('');
+    try {
+      const updated = await itineraryRequest('/' + encodeURIComponent(trip.id), {
+        method: 'PUT',
+        body: JSON.stringify({ name, settings }),
+      });
+      if (!updated?.id || !updated.plan?.settings || !Array.isArray(updated.plan.stops)) {
+        throw new Error('The server did not return the updated itinerary.');
+      }
+      setTrips(current => current.map(row => row.id === updated.id ? updated : row));
+      setEditTarget(null);
+      setMessage('Itinerary updated.');
+    } catch (requestError) {
+      setEditError(requestError instanceof TypeError
+        ? 'Unable to connect. Check your connection and try again.'
+        : requestError.message);
+    } finally {
+      mutationLock.current = false;
+      setSavingEditId('');
+    }
   }
 
   return (
     <main className="trips-page">
       <div className="trips-container">
-        {/* Header */}
-        <div className="trips-header">
-          <div>
-            <p className="trips-eyebrow">My Itineraries</p>
-            <h1>My Trips</h1>
-            <p className="trips-intro">
-              Plan and save your Naga visit schedules,{' '}
-              {user?.firstName ? user.firstName : 'traveller'}.
-            </p>
+        <header className="trips-heading">
+          <p className="trips-eyebrow"><span aria-hidden="true" />YOUR TRAVEL PLANS</p>
+          <h1>Saved itineraries</h1>
+          <p>Keep your Naga days in one place.</p>
+        </header>
+
+        {error && <p className="trips-feedback" role="alert">{error}</p>}
+        {message && <p className="trips-message" role="status">{message}</p>}
+
+        {loading ? (
+          <p className="trips-loading" role="status">Loading your saved itineraries…</p>
+        ) : loadFailed ? (
+          <div className="trips-load-error">
+            <p>Your saved itineraries could not be loaded.</p>
+            <button type="button" className="trips-open-btn" onClick={loadTrips}>Try again</button>
+            <a href="#login">Log in again</a>
           </div>
-          <button
-            className="trips-add-btn"
-            onClick={() => setShowForm(s => !s)}
-          >
-            {showForm ? 'Cancel' : '+ New Trip'}
-          </button>
-        </div>
-
-        {/* New trip form */}
-        {showForm && (
-          <form className="trips-form panel" onSubmit={handleAdd}>
-            <h2 className="trips-form-heading">New Trip</h2>
-
-            <label className="trips-label">
-              Trip name
-              <input
-                className="trips-input"
-                type="text"
-                placeholder="e.g. Naga Weekend Getaway"
-                maxLength={80}
-                required
-                value={form.title}
-                onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-              />
-            </label>
-
-            <label className="trips-label">
-              Date
-              <input
-                className="trips-input"
-                type="date"
-                value={form.date}
-                onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
-              />
-            </label>
-
-            <label className="trips-label">
-              Notes
-              <textarea
-                className="trips-textarea"
-                rows={3}
-                placeholder="Any details or reminders…"
-                value={form.notes}
-                onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-              />
-            </label>
-
-            <div className="trips-form-footer">
-              <button type="submit" className="trips-submit">Save Trip</button>
-            </div>
-          </form>
-        )}
-
-        {/* Trip list */}
-        {trips.length === 0 && !showForm ? (
-          <EmptyState />
-        ) : (
-          <ul className="trips-list">
-            {trips.map(trip => (
-              <li key={trip.id} className="trips-card panel">
-                <div className="trips-card-header">
-                  <div className="trips-card-meta">
-                    <h2 className="trips-card-title">{trip.title}</h2>
-                    {trip.date && (
-                      <span className="trips-card-date">
-                        📅 {new Date(trip.date + 'T00:00:00').toLocaleDateString('en-PH', {
-                          year: 'numeric', month: 'long', day: 'numeric',
-                        })}
-                      </span>
-                    )}
-                  </div>
-                  <div className="trips-card-actions">
-                    <button
-                      className="trips-toggle-btn"
-                      onClick={() => toggleExpand(trip.id)}
-                    >
-                      {expandedId === trip.id ? 'Hide details' : 'View details'}
-                    </button>
-                    <button
-                      className="trips-delete-btn"
-                      onClick={() => handleDelete(trip.id)}
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </div>
-
-                {expandedId === trip.id && (
-                  <div className="trips-card-body">
-                    {trip.notes ? (
-                      <p className="trips-card-notes">{trip.notes}</p>
+        ) : trips.length === 0 ? <EmptyState /> : (
+          <>
+            <p className="trips-count" aria-live="polite">
+              {trips.length} {trips.length === 1 ? 'trip' : 'trips'}
+            </p>
+            <ul className="trips-list">
+              {trips.map(trip => {
+                const plan = trip.plan || {};
+                const stops = Array.isArray(plan.stops) ? plan.stops : [];
+                const days = Number(plan.settings?.days) || plan.days?.length || 1;
+                const travelers = Number(plan.settings?.people) || 1;
+                const photo = stops.map(stop => attractionPhoto(stop.imageUrl)).find(Boolean);
+                return (
+                  <li className="trips-card" key={trip.id}>
+                    {photo ? (
+                      <img className="trips-card-photo" src={photo} alt={stops.find(stop => attractionPhoto(stop.imageUrl))?.name || 'Attraction in this itinerary'} />
                     ) : (
-                      <p className="trips-card-notes trips-card-notes--empty">
-                        No notes added.
-                      </p>
+                      <div className="trips-card-photo trips-card-photo--fallback" aria-hidden="true">LakbayNaga</div>
                     )}
-                    <div className="trips-attractions-placeholder">
-                      <span>No attractions added yet.</span>
-                      <a href="#explore">Browse attractions →</a>
+                    <div className="trips-card-content">
+                      <h2>{trip.name}</h2>
+                      <p>{days} {days === 1 ? 'day' : 'days'} · {stops.length} {stops.length === 1 ? 'stop' : 'stops'} · {travelers} {travelers === 1 ? 'traveler' : 'travelers'}</p>
+                      <p>{tripDate(plan)}</p>
+                      <p className="trips-card-expenses">Est. expenses {formatPHP(plan.totals?.total)}</p>
+                      <div className="trips-card-actions">
+                        <button type="button" className="trips-open-btn" disabled={Boolean(pendingDelete || openingId || savingEditId)} onClick={() => openTrip(trip)}>{openingId === trip.id ? 'Loading…' : 'Edit trip'}</button>
+                        <button type="button" className="trips-delete-btn" disabled={Boolean(pendingDelete || openingId || savingEditId)} onClick={() => { setError(''); setDeleteTarget(trip); }}>
+                          {pendingDelete === trip.id ? 'Deleting…' : 'Delete'}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
+                  </li>
+                );
+              })}
+            </ul>
+          </>
         )}
       </div>
+      {deleteTarget && <ConfirmDialog
+        title="Delete this itinerary?"
+        description="This saved itinerary will be permanently deleted. This action cannot be undone."
+        name={deleteTarget.name}
+        confirmLabel="Delete itinerary"
+        busyLabel="Deleting..."
+        busy={Boolean(pendingDelete)}
+        error={error}
+        onCancel={() => { if (!mutationLock.current) setDeleteTarget(null); }}
+        onConfirm={deleteTrip}
+      />}
+      {editTarget && <EditTripDialog
+        key={editTarget.id}
+        trip={editTarget}
+        busy={savingEditId === editTarget.id}
+        error={editError}
+        onCancel={() => { if (!mutationLock.current) { setEditTarget(null); setEditError(''); } }}
+        onSave={saveEditedTrip}
+      />}
     </main>
   );
 }

@@ -29,8 +29,13 @@ export function normalizeInput(input = {}) {
   const foodPerPersonDay = number(input.foodPerPersonDay ?? 0, 0, 5000, 'Check your food allowance.');
   const lodgingPerNight = number(input.lodgingPerNight ?? 0, 0, 100000, 'Check your accommodation allowance.');
   const preferences = input.preferences ?? [];
-  if (!Array.isArray(preferences) || preferences.some(value => !categories.has(value))) {
+  if (!Array.isArray(preferences) || preferences.length > 32 || preferences.some(value => !categories.has(value))) {
     throw new InputError('Select interests from the available attraction categories.');
+  }
+  const excludedPlaceIds = input.excludedPlaceIds ?? [];
+  if (!Array.isArray(excludedPlaceIds) || excludedPlaceIds.length > 100 ||
+      excludedPlaceIds.some(value => typeof value !== 'string' || value.length > 200)) {
+    throw new InputError('Check the excluded attractions list.');
   }
   const startDate = input.startDate ?? '';
   if (typeof startDate !== 'string') throw new InputError('Choose a valid start date.');
@@ -40,6 +45,10 @@ export function normalizeInput(input = {}) {
         !Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== startDate) {
       throw new InputError('Choose a valid start date.');
     }
+    const lastDate = new Date(date.getTime() + (days - 1) * 86400000);
+    if (lastDate.getUTCFullYear() > 9999) {
+      throw new InputError('Choose dates that keep the entire trip within year 9999.');
+    }
   }
   const pace = input.pace ?? 'balanced';
   const transport = input.transport ?? 'public';
@@ -48,7 +57,8 @@ export function normalizeInput(input = {}) {
     throw new InputError('Select a valid pace and transport option.');
   }
   return { budget, hours, people, days, startDate, pace, transport,
-    foodPerPersonDay, lodgingPerNight, preferences: [...new Set(preferences)] };
+    foodPerPersonDay, lodgingPerNight, preferences: [...new Set(preferences)],
+    excludedPlaceIds: [...new Set(excludedPlaceIds)] };
 }
 
 export function distanceKm(a, b) {
@@ -96,6 +106,7 @@ export function planItinerary(input, attractions) {
   let pool = [...new Map(attractions.filter(place =>
     place && typeof place.id === 'string' && place.id &&
     place.published === true && !place.archived &&
+    !settings.excludedPlaceIds.includes(place.id) &&
     Number.isFinite(place.cost) && place.cost >= 0 &&
     Number.isFinite(place.duration) && place.duration > 0 &&
     (!preferences.length || preferences.includes(place.category))

@@ -13,10 +13,22 @@ export async function accountRequest(path, body) {
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.error || "The request could not be completed.");
+    const safeMessages = new Set([
+      "Invalid email or password.", "An account with this email already exists.",
+      "This password reset link is invalid or expired.",
+      "Use a password with 12 to 128 characters.",
+      "Enter first and last names, up to 60 characters each.", "Enter a valid email address.",
+      "Google sign-in is not configured.", "Google sign-in is temporarily unavailable.",
+      "Google sign-in could not be verified.", "Invalid JSON request.",
+    ]);
+    throw new Error(safeMessages.has(data.error) ? data.error : "The request could not be completed. Please try again.");
   }
 
   return data;
+}
+
+export async function googleLogin(credential) {
+  return accountRequest('/auth/google', { credential });
 }
 
 export function useAccountForm(mode, onSuccess) {
@@ -74,7 +86,7 @@ export function useAccountForm(mode, onSuccess) {
       } else if (err instanceof TypeError || err instanceof SyntaxError) {
         setError("Unable to connect. Please try again shortly.");
       } else {
-        setError(err.message);
+        setError(err.message || "The request could not be completed. Please try again.");
       }
     } finally {
       submitting.current = false;

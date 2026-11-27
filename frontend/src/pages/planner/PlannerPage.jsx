@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   BUDGET_MAX,
   BUDGET_SLIDER_MAX,
@@ -10,10 +10,16 @@ import {
   usePlannerForm,
 } from './plannerLogic.js';
 import PlannerRouteMap from './PlannerRouteMap.jsx';
+import SavedItinerarySuccessDialog from '../../components/dialogs/SavedItinerarySuccessDialog.jsx';
 import './PlannerPage.css';
 
 
 export default function PlannerPage({ onNeedLogin }) {
+  const [tripName, setTripName] = useState('My Naga trip');
+  const [saveBusy, setSaveBusy] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(null);
+  const [saveError, setSaveError] = useState('');
+  const saveLock = useRef(false);
   const {
     values,
     update,
@@ -22,11 +28,55 @@ export default function PlannerPage({ onNeedLogin }) {
     result,
     busy,
     error,
+    savedTrip,
+    acceptSavedTrip,
+    removeStop,
   } = usePlannerForm();
+
+  useEffect(() => {
+    if (savedTrip?.name) setTripName(savedTrip.name);
+  }, [savedTrip?.id]);
 
   function handleSubmit(event) {
     event.preventDefault();
+    if (saveLock.current) return;
+    setSaveSuccess(null);
+    setSaveError('');
     generate(onNeedLogin);
+  }
+
+  async function saveItinerary(event) {
+    event.preventDefault();
+    if (saveLock.current || busy || !result?.stops?.length) return;
+    saveLock.current = true;
+    setSaveBusy(true);
+    setSaveSuccess(null);
+    setSaveError('');
+    try {
+      const response = await fetch('/api/itineraries' + (savedTrip?.id ? '/' + encodeURIComponent(savedTrip.id) : ''), {
+        method: savedTrip?.id ? 'PUT' : 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: tripName.trim(), settings: result.settings }),
+      });
+      const data = response.status === 204 ? null : await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || (response.status === 401 ? 'Please log in to save this itinerary.' : 'Could not save your itinerary.'));
+      }
+      if (!data?.id || !data.plan?.settings || !Array.isArray(data.plan.stops) || !Array.isArray(data.plan.days)) {
+        throw new Error('The server did not return a saved itinerary.');
+      }
+      acceptSavedTrip(data);
+      setTripName(data.name);
+      setSaveSuccess({ name: data.name, updated: Boolean(savedTrip?.id) });
+    } catch (requestError) {
+      setSaveError(requestError instanceof TypeError
+        ? 'Unable to connect. Check your connection and try again.'
+        : requestError.message);
+    } finally {
+      saveLock.current = false;
+      setSaveBusy(false);
+    }
   }
 
   const days    = Math.max(1, parseInt(values.days)   || 1);
@@ -34,6 +84,7 @@ export default function PlannerPage({ onNeedLogin }) {
   const budget  = parseFloat(values.budget) || 0;
 
   return (
+    <>
     <main className="planner-page">
       <div className="planner-shell">
         <header className="planner-heading">
@@ -46,6 +97,7 @@ export default function PlannerPage({ onNeedLogin }) {
         {/* ── LEFT: form ────────────────────────────────────────────────── */}
         <div className="planner-left">
           <form onSubmit={handleSubmit} noValidate>
+            <fieldset className="planner-settings-fields" aria-label="Trip settings" disabled={saveBusy || busy}>
 
             {/* Budget & dates */}
             <section className="planner-card" aria-labelledby="planner-budget-heading">
@@ -226,6 +278,7 @@ export default function PlannerPage({ onNeedLogin }) {
             >
               {busy ? 'Generating…' : '+ Generate Itinerary'}
             </button>
+            </fieldset>
           </form>
         </div>
 
@@ -235,7 +288,15 @@ export default function PlannerPage({ onNeedLogin }) {
             <TripPreview days={days} people={people} budget={budget} />
           ) : (
             <ItineraryResults
+              key={JSON.stringify(result)}
               result={result}
+              onRemoveStop={removeStop}
+              saveItinerary={saveItinerary}
+              tripName={tripName}
+              setTripName={name => { setTripName(name); setSaveSuccess(null); setSaveError(''); }}
+              saveBusy={saveBusy}
+              savedTrip={savedTrip}
+              saveError={saveError}
             />
           )}
         </div>
@@ -243,6 +304,13 @@ export default function PlannerPage({ onNeedLogin }) {
       </div>
       </div>
     </main>
+    {saveSuccess && <SavedItinerarySuccessDialog
+      name={saveSuccess.name}
+      updated={saveSuccess.updated}
+      onStay={() => setSaveSuccess(null)}
+      onView={() => { setSaveSuccess(null); window.location.hash = 'trips'; }}
+    />}
+    </>
   );
 }
 
@@ -271,7 +339,7 @@ function TripPreview({ days, people, budget }) {
 
 // ── Results panel (after generation) ─────────────────────────────────────────
 
-function ItineraryResults({ result }) {
+function ItineraryResults({ result, onRemoveStop, saveItinerary, tripName, setTripName, saveBusy, savedTrip, saveError }) {
   const [activeDay, setActiveDay] = useState(1);
 
   const { days, totals, notice, settings } = result;
@@ -339,6 +407,7 @@ function ItineraryResults({ result }) {
               key={stop.id + '-' + index}
               stop={stop}
               index={index}
+              onRemove={() => onRemoveStop(stop.id)}
             />
           ))}
         </ol>
@@ -384,6 +453,18 @@ function ItineraryResults({ result }) {
       {notice && (
         <p className="planner-notice">{notice}</p>
       )}
+
+      {hasStops && (
+        <form className="planner-save-form" onSubmit={saveItinerary}>
+          <label htmlFor="planner-trip-name">Itinerary name</label>
+          <input id="planner-trip-name" type="text" maxLength="100" required
+            value={tripName} disabled={saveBusy} onChange={event => setTripName(event.target.value)} />
+          <button type="submit" disabled={saveBusy}>
+            {saveBusy ? 'Saving…' : savedTrip?.id ? 'Update saved itinerary' : 'Save itinerary'}
+          </button>
+          {saveError && <p role="alert">{saveError}</p>}
+        </form>
+      )}
     </div>
   );
 }
@@ -391,7 +472,7 @@ function ItineraryResults({ result }) {
 
 // ── Stop row ──────────────────────────────────────────────────────────────────
 
-function StopRow({ stop, index }) {
+function StopRow({ stop, index, onRemove }) {
   const startTime = minutesToTime(stop.startMinutes);
 
   return (
@@ -406,6 +487,14 @@ function StopRow({ stop, index }) {
           <span className="planner-stop-area">{stop.area}</span>
         )}
       </div>
+      <button
+        className="planner-stop-remove"
+        type="button"
+        aria-label={`Remove ${stop.name} from itinerary`}
+        onClick={onRemove}
+      >
+        Remove
+      </button>
     </li>
   );
 }

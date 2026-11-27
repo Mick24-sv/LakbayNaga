@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { accountRequest } from '../authentication/accountLogic.js';
+import AttractionGallery from '../../components/media/AttractionGallery.jsx';
 import { formatFee } from '../attractions/attractionsLogic.js';
 import {
   attractionPhoto,
@@ -7,11 +9,11 @@ import {
 import './AttractionDetailsPage.css';
 
 
-const savedKey = 'lakbaynaga.savedPlaces.v1';
+const savedKey = userId => 'lakbaynaga.savedPlaces.v2.' + userId;
 
 
-function readSavedPlaces() {
-  const data = JSON.parse(localStorage.getItem(savedKey) || '[]');
+function readSavedPlaces(userId) {
+  const data = JSON.parse(localStorage.getItem(savedKey(userId)) || '[]');
 
 
   return Array.isArray(data)
@@ -20,14 +22,14 @@ function readSavedPlaces() {
 }
 
 
-export default function AttractionDetailsPage({ attractionId }) {
+export default function AttractionDetailsPage({ attractionId, user, checkingSession, onNeedLogin }) {
   const { place, loading, error, retry } =
     useAttractionDetails(attractionId);
 
 
   if (loading) {
     return (
-      <main className="place-details">
+      <main className="place-details" data-navigation-loading="true">
         <p className="place-state" role="status">
           Loading attraction...
         </p>
@@ -72,14 +74,16 @@ export default function AttractionDetailsPage({ attractionId }) {
   }
 
 
-  return <PlaceContent key={place.id} place={place} />;
+  return <PlaceContent key={place.id + (user?.id || 'guest')} place={place} user={user} checkingSession={checkingSession} onNeedLogin={onNeedLogin} />;
 }
 
 
-function PlaceContent({ place }) {
+function PlaceContent({ place, user, checkingSession, onNeedLogin }) {
+  const [saving, setSaving] = useState(false);
+  const saveLock = useRef(false);
   const [saved, setSaved] = useState(() => {
     try {
-      return readSavedPlaces().some(item => item.id === place.id);
+      return !!user?.id && readSavedPlaces(user.id).some(item => item.id === place.id);
     } catch {
       return false;
     }
@@ -91,6 +95,11 @@ function PlaceContent({ place }) {
 
 
   const photo = attractionPhoto(place.imageUrl);
+  const photos = [...new Set([
+    photo,
+    ...(Array.isArray(place.galleryImages) ? place.galleryImages : [])
+      .map(attractionPhoto)
+  ].filter(Boolean))];
 
 
   const paragraphs =
@@ -104,13 +113,23 @@ function PlaceContent({ place }) {
     encodeURIComponent(place.name + ' Naga City Philippines');
 
 
-  function toggleSaved() {
+  async function toggleSaved() {
+    if (checkingSession || saveLock.current) return;
+    if (!user?.id) { onNeedLogin(); return; }
+    saveLock.current = true;
+    setSaving(true);
     setSaveError('');
     setMessage('');
 
 
     try {
-      const existing = readSavedPlaces();
+      const session = await accountRequest('/auth/me');
+      if (!session?.user || session.user.id !== user.id) {
+        setSaved(false);
+        onNeedLogin();
+        return;
+      }
+      const existing = readSavedPlaces(user.id);
       const wasSaved = existing.some(item => item.id === place.id);
 
 
@@ -119,7 +138,7 @@ function PlaceContent({ place }) {
         : [{ id: place.id, at: Date.now() }, ...existing];
 
 
-      localStorage.setItem(savedKey, JSON.stringify(next));
+      localStorage.setItem(savedKey(user.id), JSON.stringify(next));
       setSaved(!wasSaved);
 
 
@@ -131,14 +150,17 @@ function PlaceContent({ place }) {
       );
     } catch {
       setSaveError(
-        'Your browser could not save this change. Please try again.'
+        'Could not confirm your account or save this change. Please try again.'
       );
+    } finally {
+      saveLock.current = false;
+      setSaving(false);
     }
   }
 
 
   return (
-    <main className="place-details">
+    <main className="place-details" data-place-details={place.id}>
       <nav className="place-breadcrumbs" aria-label="Breadcrumb">
         <a href="#explore">Explore Naga</a>
         <span aria-hidden="true">/</span>
@@ -158,11 +180,12 @@ function PlaceContent({ place }) {
         <button
           type="button"
           className="place-button"
+          disabled={checkingSession || saving}
           aria-pressed={saved}
           onClick={toggleSaved}
         >
           <Bookmark filled={saved} />
-          {saved ? 'Saved' : 'Save place'}
+          {checkingSession ? 'Checking account...' : saving ? 'Saving...' : saved ? 'Saved' : 'Save place'}
         </button>
       </div>
 
@@ -190,11 +213,7 @@ function PlaceContent({ place }) {
 
       <div className="place-detail-grid">
         <section aria-labelledby="place-description-title">
-          {photo && (
-            <figure className="place-detail-photo">
-              <img src={photo} alt={place.name} />
-            </figure>
-          )}
+          <AttractionGallery photos={photos} name={place.name} />
 
 
           {photo && place.photoCredit && (

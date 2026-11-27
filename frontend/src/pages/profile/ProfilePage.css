@@ -121,3 +121,7 @@
   .profile-row { flex-direction: column; gap: 0; }
   .profile-panel h2 { font-size: 22px; line-height: 30px; }
 }
+
+.profile-fields { border: 0; margin: 0; padding: 0; min-width: 0; }
+.profile-primary:disabled { opacity: .6; cursor: wait; }
+.profile-page .profile-success { background: #eff8ef; border-color: #d1e6d1; color: #25613b; }

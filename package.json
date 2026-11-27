@@ -2,13 +2,24 @@
   "name": "lakbaynaga",
   "version": "0.1.0",
   "private": true,
-  "workspaces": ["frontend", "backend"],
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
   "scripts": {
     "dev": "concurrently -k -n frontend,backend \"npm run dev --workspace frontend\" \"npm run dev --workspace backend\"",
     "build": "npm run build --workspace frontend",
     "start": "npm start --workspace backend",
-    "test": "npm test --workspace backend"
+    "test": "npm test --workspace backend && npm test --workspace frontend",
+    "check:deployment": "node scripts/check-deployment.mjs",
+    "configure:deployment": "node scripts/configure-deployment.mjs",
+    "build:vercel": "node scripts/check-deployment.mjs --production && npm run build",
+    "smoke:deployment": "node scripts/smoke-deployment.mjs"
   },
-  "devDependencies": { "concurrently": "^9.0.0" },
-  "engines": { "node": ">=22" }
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
 }
