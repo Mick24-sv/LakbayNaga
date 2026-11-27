@@ -341,7 +341,11 @@ Verification result: startup created the required indexes, duplicate constraints
 
 ## LNK-SEC-01: API authorization and input-validation audit
 
-Run `node --test backend/test/integration/security.test.js` from the project root. These tests use isolated memory stores and do not write to MongoDB. They cover guest/forged-session rejection (401), ordinary-user rejection on every admin route (403), immediate role-change enforcement, saved-trip ownership (including administrator accounts), forged ownership fields, structured database-style input, and rejected requests leaving records unchanged. Search is limited to 200 characters, category to 40 characters, and planner preferences to 32 entries. This ticket verifies API authorization and validation; authentication rate limits, database configuration, and upload hardening remain separate security tickets.
+Run `node --test backend/test/integration/security.test.js` from the project root. These tests use isolated memory stores and do not write to MongoDB. They cover guest/forged-session rejection (401), ordinary-user rejection on every admin route (403), immediate role-change enforcement, saved-trip ownership (including administrator accounts), forged ownership fields, structured database-style input, and rejected requests leaving records unchanged. Search is limited to 200 characters, category to 40 characters, and planner preferences to 32 entries.
+
+## LNK-SEC-02: Protect authentication endpoints
+
+Sensitive authentication actions have per-client fixed-window limits. Login and Google sign-in share a limit of 10 requests per 15 minutes; registration allows 5 per hour; password-reset requests allow 5 per hour; reset completion allows 10 per 15 minutes; and authenticated password changes allow 5 per 15 minutes. Excess requests receive HTTP 429 and a `Retry-After` header. Client identity uses Express's `req.ip`; the app does not enable proxy trust by default, so configure trusted proxies deliberately if deploying behind one. Counters are in process memory, capped at 10,000 clients, and reset when the process restarts. Multiple backend instances therefore need a shared limiter store for a cluster-wide limit.
 
 ## LNK-QA-01 verification
 
