@@ -1,4 +1,4 @@
-﻿import { httpsOrigin } from '../backend/src/config/runtime.js';
+import { httpsOrigin } from '../../backend/src/config/runtime.js';
 try {
   const index = process.argv.indexOf('--url');
   if (index === -1 || !process.argv[index + 1]) throw new Error('Usage: npm run smoke:deployment -- --url https://YOUR-SITE.vercel.app');

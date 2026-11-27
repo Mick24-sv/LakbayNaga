@@ -4,12 +4,12 @@ Status: **prepared locally, not published**. This is deployment groundwork, not 
 
 ## Architecture
 
-- Vercel serves `frontend/dist` at the public website URL.
+- Vercel serves `dist` from the `frontend/` project directory at the public website URL.
 - Vercel rewrites `/api/*` to the Render Express service. Browser requests stay on the website origin, including authentication cookies and image URLs.
 - Render connects to MongoDB Atlas. Users, sessions, trips, images and settings use MongoDB; no Render filesystem uploads are required.
 - The app uses hash routing (`/#home`, `/#planner`, etc.), so frontend pages do not need an additional SPA rewrite.
 
-The root `vercel.json` deliberately contains an `.invalid` API destination. The production build check refuses that placeholder. Do not deploy until the actual Render URL is configured.
+`frontend/vercel.json` contains the Vercel build settings and API rewrite. The production build check validates the configured Render URL.
 
 ## While the remaining tickets are being finished
 
@@ -34,7 +34,7 @@ Do not run seed scripts during every deploy. If initial data is needed, run the 
 
 ## 2. Deploy the backend to Render when the release is approved
 
-Use the root `render.yaml` as a Blueprint, or create a Node Web Service with:
+Configure the Render API as a Node Web Service in the Render dashboard with:
 
 | Setting | Value |
 | --- | --- |
@@ -65,15 +65,15 @@ After Render is running, `/api/ready` must return HTTP 200 with `{"status":"ok"}
 
 ## 3. Configure and deploy the frontend to Vercel
 
-Use the repository root as Vercel's **Root Directory**, not `frontend/`.
+Use `frontend/` as Vercel's **Root Directory**.
 
 | Setting | Value |
 | --- | --- |
 | Framework | Vite |
 | Node version | 24 |
-| Install command | `npm ci` |
-| Build command | `npm run build:vercel` |
-| Output directory | `frontend/dist` |
+| Install command | `npm install` |
+| Build command | `npm run build` |
+| Output directory | `dist` |
 | Production branch | `main` after the final merge |
 
 Once Render has assigned the real API URL, run locally:
@@ -83,7 +83,7 @@ npm run configure:deployment -- --api https://YOUR-API.onrender.com
 npm run check:deployment
 ```
 
-That command updates only the API rewrite in `vercel.json`; it does not deploy. Review and commit the changed configuration before deploying Vercel. The Render URL is public configuration, not a credential.
+That command updates only the API rewrite in `frontend/vercel.json`; it does not deploy. Review and commit the changed configuration before deploying Vercel. The Render URL is public configuration, not a credential.
 
 Set `VITE_GOOGLE_CLIENT_ID` in Vercel's Production environment to the same ID as Render's `GOOGLE_CLIENT_ID`. Restart/redeploy the frontend when changing a `VITE_*` value; it is compiled into the build. Do not copy your local `.env` files to GitHub.
 
@@ -130,7 +130,6 @@ Render's free web services can sleep after inactivity, delaying the first API re
 ## Reference documentation
 
 - [Vercel external rewrites](https://vercel.com/docs/routing/rewrites)
-- [Render Blueprint configuration](https://render.com/docs/blueprint-spec)
 - [Render health checks](https://render.com/docs/health-checks)
 - [Render free service behavior](https://render.com/docs/free)
 - [Atlas network access](https://www.mongodb.com/docs/atlas/security/ip-access-list/)

@@ -14,10 +14,10 @@
     "build": "npm run build --workspace frontend",
     "start": "npm start --workspace backend",
     "test": "npm test --workspace backend && npm test --workspace frontend",
-    "check:deployment": "node scripts/check-deployment.mjs",
-    "configure:deployment": "node scripts/configure-deployment.mjs",
-    "build:vercel": "node scripts/check-deployment.mjs --production && npm run build",
-    "smoke:deployment": "node scripts/smoke-deployment.mjs"
+    "check:deployment": "node frontend/scripts/check-deployment.mjs",
+    "configure:deployment": "node frontend/scripts/configure-deployment.mjs",
+    "build:vercel": "node frontend/scripts/check-deployment.mjs --production && npm run build",
+    "smoke:deployment": "node frontend/scripts/smoke-deployment.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.0.0"
