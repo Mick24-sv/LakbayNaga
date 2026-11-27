@@ -24,6 +24,7 @@ export function createApp({
   imageRepository = makeImageRepository(),
   mailer,
   google,
+  readiness = () => true,
   attractionRepository = makeAttractionRepository({
     initialData: attractionData
   })
@@ -33,6 +34,7 @@ export function createApp({
 
 
   app.disable('x-powered-by');
+  app.use('/api', (_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
   app.use(express.json({ limit: '1mb' }));
 
 
@@ -45,6 +47,13 @@ export function createApp({
     res.json({ status: 'ok' });
   });
 
+
+  app.get('/api/ready', async (_req, res) => {
+    try {
+      const ready = await readiness();
+      res.status(ready ? 200 : 503).json({ status: ready ? 'ok' : 'unavailable' });
+    } catch { res.status(503).json({ status: 'unavailable' }); }
+  });
 
   app.use('/api', createAuthRoutes(store, access, { mailer, google }));
 

@@ -346,3 +346,7 @@ Run `node --test backend/test/integration/security.test.js` from the project roo
 ## LNK-QA-01 verification
 
 See [the QA report](docs/qa/LNK-QA-01.md) for verified journeys, bug fixes, screenshots, repeatable commands, and external acceptance checks. Run `npm test` and `npm run build` from the root. `node backend/src/scripts/check-qa-persistence.js` verifies profile/password/session/trip persistence in isolated MongoDB collections and cleans them up. Profile APIs accept only the documented fields; the password route requires the current password.
+
+## Deployment preparation
+
+The release target is Vercel (frontend), Render (Express API), and MongoDB Atlas. See [the deployment guide](docs/deployment/README.md). `vercel.json` contains a deliberate placeholder until the real Render URL is known; `npm run build:vercel` blocks publishing with that placeholder. `npm run check:deployment` validates the local template without publishing. The root `render.yaml` targets the finished `main` branch with automatic deployment initially off. Production startup requires MongoDB and a valid HTTPS frontend origin. Remaining team tickets and hosted acceptance checks must be completed before release.

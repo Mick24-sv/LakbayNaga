@@ -1,6 +1,8 @@
+import { runtimeConfig } from './config/runtime.js';
 import dotenv from 'dotenv';
 import {
   connectDatabase,
+  isDatabaseReady,
   disconnectDatabase
 } from './config/database.js';
 import { makeStore } from './repositories/memoryStore.js';
@@ -18,7 +20,7 @@ dotenv.config({
 
 
 try {
-  const persistent = Boolean(process.env.MONGODB_URI);
+  const { persistent, port } = runtimeConfig();
 
 
   if (persistent) {
@@ -73,12 +75,13 @@ try {
     attractionRepository,
     itineraryRepository,
     settingsRepository,
-    imageRepository
+    imageRepository,
+    readiness: () => !persistent || isDatabaseReady()
   });
-  const port = Number(process.env.PORT || 3001);
 
 
-  const server = app.listen(port, () => {
+
+  const server = app.listen(port, '0.0.0.0', () => {
     console.log('LakbayNaga API listening on port ' + port);
     console.log('Itinerary storage: ' + (persistent ? 'MongoDB' : 'memory'));
     console.log(
@@ -87,6 +90,22 @@ try {
   });
 
 
+  let closing = false;
+  async function shutdown() {
+    if (closing) return;
+    closing = true;
+    const deadline = setTimeout(() => process.exit(1), 10000);
+    deadline.unref();
+    server.close(async () => {
+      try { await disconnectDatabase(); process.exitCode = 0; }
+      catch { process.exitCode = 1; }
+      finally { clearTimeout(deadline); }
+    });
+    server.closeIdleConnections?.();
+  }
+  process.once('SIGTERM', shutdown);
+  process.once('SIGINT', shutdown);
+
   server.on('error', async () => {
     console.error('Server startup failed. Check the configured port.');
     await disconnectDatabase();
@@ -94,6 +113,7 @@ try {
   });
 } catch (error) {
   console.error('Backend startup failed. Error type: ' + error.name);
+  if (error.name === 'ConfigurationError') console.error(error.message);
   console.error(
     'Check database credentials, network access, and collection indexes.'
   );
